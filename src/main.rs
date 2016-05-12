@@ -19,11 +19,11 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>) {
         let rand_pos = Vector2f::new(xpos, ypos + rand::thread_rng().gen_range(-50, 50) as f32);
 
         new_plat.set_position(&rand_pos);
-        new_plat.set_fill_color( &match rand::thread_rng().gen_range(0, 3) {
+        new_plat.set_fill_color( &match rand::thread_rng().gen_range(0, 4) {
             0 => Color::red(),
             1 => Color::green(),
             2 => Color::blue(),
-            _ => Color::red()
+            _ => Color::white()
         } );
 
         platforms.push(new_plat);
@@ -100,10 +100,31 @@ fn handle_events(window: &mut RenderWindow, player: &mut RectangleShape, game_ov
                     _ => { }
                 }
             },
+            event::KeyReleased { code, .. } => { println!("{:?}", code) }
             _             => {/* do nothing */}
         }
     }
 }
+
+fn render(window: &mut RenderWindow, player: &RectangleShape, platforms: &Vec<RectangleShape>, score_text: &Text) {
+    // Clear the window
+    window.clear(&Color::black());
+
+    // Draw the platforms
+    for plat in platforms {
+        window.draw(plat);
+    }
+
+    // Draw player
+    window.draw(player);
+
+    // Draw level text
+    window.draw(score_text);
+
+    // Display things on screen
+    window.display();
+}
+
 
 fn main() {
     // Create the window of the application
@@ -139,22 +160,7 @@ fn main() {
     while window.is_open() {
         handle_events(&mut window, &mut player, &game_over);
 
-        // Clear the window
-        window.clear(&Color::black());
-
-        // Draw the platforms
-        for plat in &platforms {
-            window.draw(plat);
-        }
-
-        // Draw player
-        window.draw(&player);
-
-        // Draw level text
-        window.draw(&score_text);
-
-        // Display things on screen
-        window.display();
+        render(&mut window, &player, &platforms, &score_text);
 
         // Update
         if !game_over {
