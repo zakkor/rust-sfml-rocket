@@ -1,6 +1,5 @@
 extern crate sfml;
 extern crate rand;
-extern crate find_folder;
 
 use rand::Rng;
 
