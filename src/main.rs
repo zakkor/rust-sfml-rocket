@@ -7,6 +7,11 @@ use sfml::system::Vector2f;
 use sfml::window::*;
 use sfml::graphics::*;
 
+struct Score<'a> {
+    number: u32,
+    text: Text<'a>
+}
+
 fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> i32 {
     *platforms = vec![RectangleShape::new().unwrap()];
     let mut ypos = -300.;
@@ -18,12 +23,9 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> 
             if should_split == 4 || should_split == 3 {
                 // 2 in 5 chance to split
                 let split_rand = rand::thread_rng().gen_range(1, 5);
-
-                // let xsize = rand::thread_rng().gen_range(100, 1281) as f32;
                 let ysize = rand::thread_rng().gen_range(25, 125) as f32;
 
                 for i in 0..split_rand {
-                    // let xpos_and_size = rand::thread_rng().gen_range(-500, 500) as f32;
                     let mut new_plat = RectangleShape::new().unwrap();
 
                     new_plat.set_size(&Vector2f::new(1280. / split_rand as f32, ysize));
@@ -34,7 +36,7 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> 
                         _ => if split_rand > 1 { Color::white() } else { Color::red() },
                     });
 
-                    let rand_pos = Vector2f::new(1280. / split_rand as f32 * i as f32, ypos);// + rand::thread_rng().gen_range(-50, 50) as f32);
+                    let rand_pos = Vector2f::new(1280. / split_rand as f32 * i as f32, ypos);
                     new_plat.set_position(&rand_pos);
                     platforms.push(new_plat);
                     number_of_plats += 1;
@@ -72,24 +74,19 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> 
             platforms.push(new_plat);
             number_of_plats += 1;
         }
-
-
-        // platforms.push(new_plat);
-
         ypos -= 200.;
     }
     number_of_plats
 }
 
+// todo: clean
 fn next_level(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> i32 {
     generate_platforms(platforms, upper_bound)
 }
 
-
 fn update(platforms: &mut Vec<RectangleShape>,
           player: &RectangleShape,
-          score: &mut Box<i32>,
-          score_text: &mut Text,
+          score: &mut Score,
           bg_sprites: &mut Vec<Sprite>,
           upper_bound: i32,
           number_of_plats: &mut i32,
@@ -100,12 +97,9 @@ fn update(platforms: &mut Vec<RectangleShape>,
     for bg in bg_sprites {
         bg.move_(&Vector2f::new(0., 1. + *speed_bump));
         if bg.get_position().y >= 720. {
-            // let bg_ypos = bg.get_position().y;
-            // bg.set_position((&Vector2f::new(0., -bg_ypos - (720. - bg_ypos - (2. * (*speed_bump))))))
             bg.move_(&Vector2f::new(0., -720. * 2.))
         }
     }
-
 
     let mut switch_level = false;
 
@@ -114,27 +108,24 @@ fn update(platforms: &mut Vec<RectangleShape>,
            (player.get_fill_color().0.red != plat.get_fill_color().0.red ||
             player.get_fill_color().0.green != plat.get_fill_color().0.green ||
             player.get_fill_color().0.blue != plat.get_fill_color().0.blue) {
-            if i == (*number_of_plats) as usize {
-                switch_level = true;
-            } else {
-                game_over = true;
-                //                    score_text.set_string("GAME OVER");
-                //                    score_text.set_position(&Vector2f::new(1280. / 2. - 63., 25.));
-            }
+               if i == (*number_of_plats) as usize {
+                   switch_level = true;
+               } else {
+                   game_over = true;
+               }
 
         } else if player.get_global_bounds().intersects(&plat.get_global_bounds()) != None &&
            (player.get_fill_color().0.red == plat.get_fill_color().0.red ||
             player.get_fill_color().0.green == plat.get_fill_color().0.green ||
             player.get_fill_color().0.blue == plat.get_fill_color().0.blue) {
-            **score += (1. * (*speed_bump + 1.)) as i32;
-            score_text.set_string(&score.to_string());
+               score.number += (1. * (*speed_bump + 1.)) as u32;
+               score.text.set_string(&score.number.to_string());
         }
         plat.move2f(0., 3. + *speed_bump);
     }
 
     if switch_level {
         *speed_bump += 0.5;
-        // *level_count = next_level(platforms, *level_count, upper_bound);
         *number_of_plats = next_level(platforms, upper_bound);
     }
 
@@ -166,8 +157,7 @@ fn cycle_colors_right(player: &mut RectangleShape) {
 fn handle_events(window: &mut RenderWindow,
                  player: &mut RectangleShape,
                  game_over: &mut bool,
-                 score: &mut i32,
-                 score_text: &mut Text,
+                 score: &mut Score,
                  platforms: &mut Vec<RectangleShape>,
                  upper_bound: i32,
                  number_of_plats: &mut i32,
@@ -193,8 +183,8 @@ fn handle_events(window: &mut RenderWindow,
                     Key::Escape => window.close(),
                     Key::R => {
                         *game_over = false;
-                        *score = 0;
-                        score_text.set_string("0");
+                        score.number = 0;
+                        score.text.set_string("0");
                         *number_of_plats = next_level(platforms, upper_bound);
                         *speed_bump = 0.;
                     }
@@ -243,6 +233,8 @@ fn render(window: &mut RenderWindow,
 }
 
 
+
+
 fn main() {
     // Create the window of the application
     let mut window = RenderWindow::new(VideoMode::new_init(1280, 720, 32),
@@ -255,13 +247,11 @@ fn main() {
 
     let font = Font::new_from_file("res/arial.ttf").unwrap();
 
-    let mut score = Box::new(0);
-
-    let mut score_text = Text::new().unwrap();
-    score_text.set_font(&font);
-    score_text.set_position(&Vector2f::new(1280. / 2., 25.));
-    score_text.set_color(&Color::white());
-    score_text.set_string(&score.to_string());
+    let mut score = Score { number: 0, text: Text::new().unwrap() };
+    score.text.set_font(&font);
+    score.text.set_position(&Vector2f::new(1280. / 2., 25.));
+    score.text.set_color(&Color::white());
+    score.text.set_string(&score.number.to_string());
 
     let mut game_over_text = Text::new().unwrap();
     game_over_text.set_font(&font);
@@ -275,7 +265,7 @@ fn main() {
 
     let mut level_count: u8 = 0;
     const UPPER_BOUND: i32 = 30; //exclusive
-    //level_count =
+
     let mut number_of_plats = next_level(&mut platforms, UPPER_BOUND);
 
     let mut player = RectangleShape::new().unwrap();
@@ -301,7 +291,6 @@ fn main() {
                       &mut player,
                       &mut game_over,
                       &mut score,
-                      &mut score_text,
                       &mut platforms,
                       UPPER_BOUND,
                       &mut number_of_plats,
@@ -312,7 +301,6 @@ fn main() {
             game_over = update(&mut platforms,
                                &player,
                                &mut score,
-                               &mut score_text,
                                &mut bg_sprites,
                                UPPER_BOUND,
                                &mut number_of_plats,
@@ -322,7 +310,7 @@ fn main() {
         render(&mut window,
                &player,
                &platforms,
-               &score_text,
+               &score.text,
                &game_over_text,
                &bg_sprites,
                &game_over);
