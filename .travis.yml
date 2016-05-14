@@ -1,7 +1,7 @@
 sudo: false
 env:
   global:
-    - LD_LIBRARY_PATH=/home/travis/build/jeremyletang/rust-sfml/sfml_install/usr/local/lib
+    - LD_LIBRARY_PATH=/home/travis/build/zakkor/rust-sfml-rocket/sfml_install/usr/local/lib
 language: rust
 rust:
   - stable
@@ -13,15 +13,15 @@ script:
   - wget http://www.sfml-dev.org/files/SFML-2.3.2-sources.zip --no-check-certificate
   - unzip -q SFML-2.3.2-sources.zip
   - pushd SFML-2.3.2 && mkdir build && cd build && cmake .. && make
-  - make DESTDIR=/home/travis/build/jeremyletang/rust-sfml/sfml_install install
+  - make DESTDIR=/home/travis/build/zakkor/rust-sfml-rocket/sfml_install install
   - popd
   - wget http://www.sfml-dev.org/files/CSFML-2.3-sources.zip --no-check-certificate
   - unzip -q CSFML-2.3-sources.zip
   - pushd CSFML-2.3
   - mkdir cmake/Modules
-  - cp /home/travis/build/jeremyletang/rust-sfml/sfml_install/usr/local/share/SFML/cmake/Modules/FindSFML.cmake cmake/Modules
-  - mkdir build && cd build && cmake -DCMAKE_MODULE_PATH=/home/travis/build/jeremyletang/rust-sfml/CSFML-2.3/cmake/Modules -DSFML_ROOT=/home/travis/build/jeremyletang/rust-sfml/sfml_install/usr/local .. && make
-  - make DESTDIR=/home/travis/build/jeremyletang/rust-sfml/sfml_install install
+  - cp /home/travis/build/zakkor/rust-sfml-rocket/sfml_install/usr/local/share/SFML/cmake/Modules/FindSFML.cmake cmake/Modules
+  - mkdir build && cd build && cmake -DCMAKE_MODULE_PATH=/home/travis/build/zakkor/rust-sfml-rocket/CSFML-2.3/cmake/Modules -DSFML_ROOT=/home/travis/build/zakkor/rust-sfml-rocket/sfml_install/usr/local .. && make
+  - make DESTDIR=/home/travis/build/zakkor/rust-sfml-rocket/sfml_install install
   - popd
   - mkdir .cargo
   - mv .travis.cargo.config .cargo/config
