@@ -132,25 +132,31 @@ fn update(platforms: &mut Vec<RectangleShape>,
     game_over
 }
 
-/// left: true -> cycle left / false -> cycle right
-fn cycle_colors(player: &mut RectangleShape, left: bool) {
+enum CycleDirection {
+    Left,
+    Right
+}
+
+fn cycle_colors(player: &mut RectangleShape, direction: CycleDirection) {
     let current_color = player.get_fill_color();
     let color_values = (current_color.0.red, current_color.0.green, current_color.0.blue);
     let new_color =
-        if left {
-            match color_values {
-                (255, 0, 0) => (0, 0, 255),
-                (0, 255, 0) => (255, 0, 0),
-                (0, 0, 255) => (0, 255, 0),
-                _ => (0, 0, 0)
-            }
-        } else {
-            match color_values {
-                (255, 0, 0) => (0, 255, 0),
-                (0, 255, 0) => (0, 0, 255),
-                (0, 0, 255) => (255, 0, 0),
-                _ => (0, 0, 0)
-            }
+        match direction {
+            CycleDirection::Left =>
+                match color_values {
+                    (255, 0, 0) => (0, 0, 255),
+                    (0, 255, 0) => (255, 0, 0),
+                    (0, 0, 255) => (0, 255, 0),
+                    _ => (0, 0, 0)
+                },
+
+            CycleDirection::Right =>
+                match color_values {
+                    (255, 0, 0) => (0, 255, 0),
+                    (0, 255, 0) => (0, 0, 255),
+                    (0, 0, 255) => (255, 0, 0),
+                    _ => (0, 0, 0)
+                }
         };
     player.set_fill_color(&Color::new_rgb(new_color.0, new_color.1, new_color.2));
 }
@@ -174,8 +180,8 @@ fn handle_events(window: &mut RenderWindow,
             }
             event::MouseButtonReleased { button, .. } => {
                 match button {
-                    MouseButton::Left => cycle_colors(player, true), // left
-                    MouseButton::Right => cycle_colors(player, false), // right
+                    MouseButton::Left => cycle_colors(player, CycleDirection::Left),
+                    MouseButton::Right => cycle_colors(player, CycleDirection::Right),
                     _ => {}
                 }
             }
