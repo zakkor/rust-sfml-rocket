@@ -30,14 +30,14 @@ impl<'a> Platform<'a> {
         }
     }
 
-    pub fn move_platform(&mut self) {
+    pub fn move_platform(&mut self, multiplier: &f32) {
         if self.plat_type == PlatformType::Moving {
             if self.move_dir == MoveDirection::Right {
                 if self.shape.get_position().x + self.shape.get_local_bounds().width >= 1280. {
                     self.move_dir = MoveDirection::Left;
                 }
                 else {
-                    self.shape.move2f( self.move_speed, 0.);
+                    self.shape.move2f( self.move_speed * multiplier, 0.);
                 }
             }
             else {
@@ -45,7 +45,7 @@ impl<'a> Platform<'a> {
                     self.move_dir = MoveDirection::Right;
                 }
                 else {
-                    self.shape.move2f( -self.move_speed, 0.);
+                    self.shape.move2f( -self.move_speed * multiplier, 0.);
                 }
             }
         }

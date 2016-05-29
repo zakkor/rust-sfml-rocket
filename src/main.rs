@@ -52,7 +52,7 @@ fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
             } else {
                 // it's not a split
                 let ysize = rand::thread_rng().gen_range(25, 150) as f32;
-                let move_speed = rand::thread_rng().gen_range(2, 10) as f32;
+                let move_speed = rand::thread_rng().gen_range(1, 5) as f32;
 
                 let mut new_shape = RectangleShape::new().unwrap();
 
@@ -135,12 +135,12 @@ fn update(platforms: &mut Vec<Platform>,
                         score.number += (1. * (*speed_bump + 1.)) as u32;
                         score.text.set_string(&score.number.to_string());
                     }
-                plat.shape.move2f(0., 3. + *speed_bump);
+                plat.shape.move2f(0., 2. + *speed_bump);
             }
 
 
             for plat in platforms.iter_mut() {
-                plat.move_platform();
+                plat.move_platform(speed_bump);
             }
 
             if switch_level {
@@ -250,7 +250,7 @@ fn handle_events(window: &mut RenderWindow,
                                 score.text.set_position(&Vector2f::new(1280. / 2., 25.));
                                 score.text.set_character_size(30);
                                 *number_of_plats = generate_platforms(platforms, upper_bound);
-                                *speed_bump = 0.;
+                                *speed_bump = 0.5;
                             },
                             _ => {}
                         }
@@ -361,7 +361,7 @@ fn main() {
     bg_sprites[0].set_position(&Vector2f::new(0., -720.));
     bg_sprites[1].set_position(&Vector2f::new(0., 0.));
 
-    let mut speed_bump = 0.;
+    let mut speed_bump = 0.5;
 
     let mut state_stack = StateStack::new();
     state_stack.push(StateType::Playing);
