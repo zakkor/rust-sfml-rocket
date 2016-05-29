@@ -8,6 +8,8 @@ use sfml::window::*;
 use sfml::graphics::*;
 mod platform;
 use platform::*;
+mod state_stack;
+use state_stack::*;
 
 struct Score<'a> {
     number: u32,
@@ -151,7 +153,7 @@ fn cycle_colors(player: &mut RectangleShape, direction: CycleDirection) {
                     (255, 0, 0) => (0, 0, 255),
                     (0, 255, 0) => (255, 0, 0),
                     (0, 0, 255) => (0, 255, 0),
-                    _ => (0, 0, 0)
+                    _ => panic!("bad color values recieved in cycle_colors()"),
                 },
 
             CycleDirection::Right =>
@@ -159,7 +161,7 @@ fn cycle_colors(player: &mut RectangleShape, direction: CycleDirection) {
                     (255, 0, 0) => (0, 255, 0),
                     (0, 255, 0) => (0, 0, 255),
                     (0, 0, 255) => (255, 0, 0),
-                    _ => (0, 0, 0)
+                    _ => panic!("bad color values recieved in cycle_colors()"),
                 }
         };
     player.set_fill_color(&Color::new_rgb(new_color.0, new_color.1, new_color.2));
@@ -172,41 +174,62 @@ fn handle_events(window: &mut RenderWindow,
                  platforms: &mut Vec<Platform>,
                  upper_bound: i32,
                  number_of_plats: &mut i32,
-                 speed_bump: &mut f32) {
+                 speed_bump: &mut f32,
+                 state_stack: &mut StateStack) {
     // Handle events
     for event in window.events() {
-        match event {
-            event::Closed => window.close(),
-            event::MouseMoved { x, .. } => {
-                if !*game_over {
-                    player.set_position(&Vector2f::new(x as f32, 720. - 200.));
-                }
-            }
-            event::MouseButtonReleased { button, .. } => {
-                match button {
-                    MouseButton::Left => cycle_colors(player, CycleDirection::Left),
-                    MouseButton::Right => cycle_colors(player, CycleDirection::Right),
-                    _ => {}
-                }
-            }
-            event::KeyReleased { code, .. } => {
-                match code {
-                    Key::Escape => window.close(),
-                    Key::R => {
-                        //reset the game
-                        *game_over = false;
-                        score.number = 0;
-                        score.text.set_string("0");
-                        *number_of_plats = generate_platforms(platforms, upper_bound);
-                        *speed_bump = 0.;
+        match state_stack.top().unwrap() {
+            &StateType::Playing => {
+                match event {
+                    event::Closed => window.close(),
+                    event::MouseMoved { x, .. } => {
+                        if !*game_over {
+                            player.set_position(&Vector2f::new(x as f32, 720. - 200.));
+                        }
                     }
+                    event::MouseButtonReleased { button, .. } => {
+                        match button {
+                            MouseButton::Left => cycle_colors(player, CycleDirection::Left),
+                            MouseButton::Right => cycle_colors(player, CycleDirection::Right),
+                            _ => {}
+                        }
+                    }
+                    event::KeyReleased { code, .. } => {
+                        match code {
+                            Key::Escape => {
+                                state_stack.push(StateType::Menu);
+                                println!("{:?}", state_stack);
+                            },
+                            Key::R => {
+                                //reset the game
+                                *game_over = false;
+                                score.number = 0;
+                                score.text.set_string("0");
+                                *number_of_plats = generate_platforms(platforms, upper_bound);
+                                *speed_bump = 0.;
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => { /* do nothing */ }
+                }
+            },
+            &StateType::Menu => {
+                match event {
+                    event::KeyReleased { code, .. } => {
+                        match code {
+                            Key::Escape => {
+                                state_stack.pop();
+                                println!("{:?}", state_stack);
+                            },
+                            _ => {}
+                        }
+                    },
                     _ => {}
                 }
-            }
-            _ => {
-                // do nothing
-            }
+            },
         }
+
     }
 }
 
@@ -298,6 +321,9 @@ fn main() {
 
     let mut speed_bump = 0.;
 
+    let mut state_stack = StateStack::new();
+    state_stack.push(StateType::Playing);
+
     while window.is_open() {
         handle_events(&mut window,
                       &mut player,
@@ -306,7 +332,8 @@ fn main() {
                       &mut platforms,
                       UPPER_BOUND,
                       &mut number_of_plats,
-                      &mut speed_bump);
+                      &mut speed_bump,
+                      &mut state_stack);
 
         // Update
         if !game_over {
