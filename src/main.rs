@@ -19,7 +19,7 @@ struct Score<'a> {
 }
 
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
-    *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static)];
+    *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
     let mut ypos = -300.;
 
     let mut number_of_plats = 0;
@@ -46,12 +46,13 @@ fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
                     let rand_pos = Vector2f::new(1280. / split_rand as f32 * i as f32, ypos);
                     new_shape.set_position(&rand_pos);
 
-                    platforms.push(Platform::new(new_shape, PlatformType::Static));
+                    platforms.push(Platform::new(new_shape, PlatformType::Static, 0.));
                     number_of_plats += 1;
                 }
             } else {
                 // it's not a split
                 let ysize = rand::thread_rng().gen_range(25, 150) as f32;
+                let move_speed = rand::thread_rng().gen_range(2, 10) as f32;
 
                 let mut new_shape = RectangleShape::new().unwrap();
 
@@ -68,7 +69,7 @@ fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
                                              ypos + rand::thread_rng().gen_range(-50, 50) as f32);
                 new_shape.set_position(&rand_pos);
                 // make a moving platform
-                platforms.push(Platform::new(new_shape, PlatformType::Moving));
+                platforms.push(Platform::new(new_shape, PlatformType::Moving, move_speed));
                 number_of_plats += 1;
             }
         } else if i == upper_bound - 1 {
@@ -78,7 +79,7 @@ fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
             new_shape.set_position(&Vector2f::new(0., platforms[(number_of_plats) as usize].shape.get_position().y - 500.));
             new_shape.set_fill_color(&Color::magenta());
 
-            platforms.push(Platform::new(new_shape, PlatformType::Static));
+            platforms.push(Platform::new(new_shape, PlatformType::Static, 0.));
             number_of_plats += 1;
         }
         ypos -= 200.;
@@ -114,7 +115,17 @@ fn update(platforms: &mut Vec<Platform>,
                         if i == (*number_of_plats) as usize {
                             switch_level = true;
                         } else {
+                            // game over
                             state_stack.push(StateType::GameOver);
+                            let score_width = score.text.get_local_bounds().width;
+                            score.text.set_position(&Vector2f::new(1280. / 2. - score_width / 2., 350.));
+                            score.text.set_character_size(60);
+                            score.text.set_color(
+                                &match score.number {
+                                    0...500 => Color::red(),
+                                    501...1000 => Color::yellow(),
+                                    _ => Color::green()
+                            } );
                         }
 
                     } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
@@ -127,10 +138,9 @@ fn update(platforms: &mut Vec<Platform>,
                 plat.shape.move2f(0., 3. + *speed_bump);
             }
 
+
             for plat in platforms.iter_mut() {
-                if plat.plat_type == PlatformType::Moving {
-                    plat.shape.move2f(0.6, 0.);
-                }
+                plat.move_platform();
             }
 
             if switch_level {
@@ -236,6 +246,9 @@ fn handle_events(window: &mut RenderWindow,
                                 state_stack.pop();
                                 score.number = 0;
                                 score.text.set_string("0");
+                                score.text.set_color(&Color::white());
+                                score.text.set_position(&Vector2f::new(1280. / 2., 25.));
+                                score.text.set_character_size(30);
                                 *number_of_plats = generate_platforms(platforms, upper_bound);
                                 *speed_bump = 0.;
                             },
@@ -286,6 +299,7 @@ fn render(window: &mut RenderWindow,
         &StateType::GameOver => {
             window.clear(&Color::black());
             window.draw(game_over_text);
+            window.draw(score_text);
         }
     }
     window.display();
@@ -310,6 +324,7 @@ fn main() {
     score.text.set_font(&font);
     score.text.set_position(&Vector2f::new(1280. / 2., 25.));
     score.text.set_color(&Color::white());
+    score.text.set_character_size(30);
     score.text.set_string(&score.number.to_string());
 
     let mut game_over_text = Text::new().unwrap();
@@ -320,7 +335,7 @@ fn main() {
     game_over_text.set_string("GAME OVER!");
 
 
-    let mut platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static)];
+    let mut platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
 
 //    let mut level_count: u8 = 0;
     const UPPER_BOUND: i32 = 30; //exclusive
