@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 extern crate sfml;
-use sfml::graphics::Texture;
+use sfml::graphics::{Texture, Font};
 
 pub trait Resource: Sized {
     fn new_from_file(filename: &str) -> Option<Self>;
@@ -10,6 +10,12 @@ pub trait Resource: Sized {
 impl Resource for Texture {
     fn new_from_file(filename: &str) -> Option<Self> {
         Texture::new_from_file(filename)
+    }
+}
+
+impl Resource for Font {
+    fn new_from_file(filename: &str) -> Option<Self> {
+        Font::new_from_file(filename)
     }
 }
 
@@ -42,5 +48,10 @@ pub enum TextureIdentifiers {
     Nebula,
     Rocket
 }
+#[derive(PartialEq, Eq, Hash)]
+pub enum FontIdentifiers {
+    Arial
+}
 
 pub type TextureManager = ResourceManager<TextureIdentifiers, Texture>;
+pub type FontManager = ResourceManager<FontIdentifiers, Font>;

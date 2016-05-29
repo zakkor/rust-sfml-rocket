@@ -318,17 +318,18 @@ fn main() {
     window.set_framerate_limit(60);
     window.set_vertical_sync_enabled(true);
 
-    let font = Font::new_from_file("res/arial.ttf").unwrap();
+    let mut font_manager = FontManager::new();
+    font_manager.load(FontIdentifiers::Arial, "res/arial.ttf");
 
     let mut score = Score { number: 0, text: Text::new().unwrap() };
-    score.text.set_font(&font);
+    score.text.set_font(font_manager.get(FontIdentifiers::Arial));
     score.text.set_position(&Vector2f::new(1280. / 2., 25.));
     score.text.set_color(&Color::white());
     score.text.set_character_size(30);
     score.text.set_string(&score.number.to_string());
 
     let mut game_over_text = Text::new().unwrap();
-    game_over_text.set_font(&font);
+    game_over_text.set_font(font_manager.get(FontIdentifiers::Arial));
     game_over_text.set_position(&Vector2f::new(1280. / 2. - 175., 250.));
     game_over_text.set_color(&Color::white());
     game_over_text.set_character_size(60);
