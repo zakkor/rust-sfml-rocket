@@ -2,7 +2,8 @@
 //TODO: replace game_over with GameOver state
 pub enum StateType {
     Playing,
-    Menu
+    Menu,
+    GameOver
 }
 
 #[derive(Debug)]

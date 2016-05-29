@@ -91,11 +91,8 @@ fn update(platforms: &mut Vec<Platform>,
           upper_bound: i32,
           number_of_plats: &mut i32,
           speed_bump: &mut f32,
-          state_stack: &StateStack)
-          -> bool {
-    //TODO: replace game_over with GameOver state
-    let mut game_over = false;
-
+          state_stack: &mut StateStack)
+{
     match state_stack.top().unwrap() {
         &StateType::Playing => {
             for bg in bg_sprites {
@@ -115,7 +112,7 @@ fn update(platforms: &mut Vec<Platform>,
                         if i == (*number_of_plats) as usize {
                             switch_level = true;
                         } else {
-                            game_over = true;
+                            state_stack.push(StateType::GameOver);
                         }
 
                     } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
@@ -143,8 +140,10 @@ fn update(platforms: &mut Vec<Platform>,
         &StateType::Menu => {
             /* TODO: replace with menu logic */
         }
+        &StateType::GameOver => {
+            /* nothing */
+        }
     }
-    game_over
 }
 
 enum CycleDirection {
@@ -178,7 +177,6 @@ fn cycle_colors(player: &mut RectangleShape, direction: CycleDirection) {
 
 fn handle_events(window: &mut RenderWindow,
                  player: &mut RectangleShape,
-                 game_over: &mut bool,
                  score: &mut Score,
                  platforms: &mut Vec<Platform>,
                  upper_bound: i32,
@@ -192,9 +190,7 @@ fn handle_events(window: &mut RenderWindow,
                 match event {
                     event::Closed => window.close(),
                     event::MouseMoved { x, .. } => {
-                        if !*game_over {
-                            player.set_position(&Vector2f::new(x as f32, 720. - 200.));
-                        }
+                        player.set_position(&Vector2f::new(x as f32, 720. - 200.));
                     }
                     event::MouseButtonReleased { button, .. } => {
                         match button {
@@ -209,14 +205,6 @@ fn handle_events(window: &mut RenderWindow,
                                 state_stack.push(StateType::Menu);
                                 println!("{:?}", state_stack);
                             },
-                            Key::R => {
-                                //reset the game
-                                *game_over = false;
-                                score.number = 0;
-                                score.text.set_string("0");
-                                *number_of_plats = generate_platforms(platforms, upper_bound);
-                                *speed_bump = 0.;
-                            }
                             _ => {}
                         }
                     }
@@ -237,6 +225,24 @@ fn handle_events(window: &mut RenderWindow,
                     _ => {}
                 }
             },
+            &StateType::GameOver => {
+                match event {
+                    event::KeyReleased { code, .. } => {
+                        match code {
+                            Key::R => {
+                                //reset the game
+                                state_stack.pop();
+                                score.number = 0;
+                                score.text.set_string("0");
+                                *number_of_plats = generate_platforms(platforms, upper_bound);
+                                *speed_bump = 0.;
+                            },
+                            _ => {}
+                        }
+                    },
+                    _ => {}
+                }
+            }
         }
 
     }
@@ -248,8 +254,8 @@ fn render(window: &mut RenderWindow,
           score_text: &Text,
           game_over_text: &Text,
           bg_sprites: &Vec<Sprite>,
-          game_over: &bool,
           state_stack: &StateStack) {
+
     match state_stack.top().unwrap() {
         &StateType::Playing => {
             // Clear the window
@@ -260,31 +266,27 @@ fn render(window: &mut RenderWindow,
                 window.draw(bg);
             }
 
-            if !game_over {
-                // Draw the platforms
-                for plat in platforms {
-                    window.draw(&plat.shape);
-                }
-
-                // Draw player
-                window.draw(player);
-            } else {
-                window.draw(game_over_text);
+            // Draw the platforms
+            for plat in platforms {
+                window.draw(&plat.shape);
             }
+
+            // Draw player
+            window.draw(player);
 
             // Draw level text
             window.draw(score_text);
-
-            // Display things on screen
-            window.display();
         },
         &StateType::Menu => {
             /* don't draw anything for now */
             window.clear(&Color::blue());
-            window.display();
+        },
+        &StateType::GameOver => {
+            window.clear(&Color::black());
+            window.draw(game_over_text);
         }
     }
-
+    window.display();
 }
 
 
@@ -337,8 +339,6 @@ fn main() {
     bg_sprites[0].set_position(&Vector2f::new(0., -720.));
     bg_sprites[1].set_position(&Vector2f::new(0., 0.));
 
-    let mut game_over = false;
-
     let mut speed_bump = 0.;
 
     let mut state_stack = StateStack::new();
@@ -347,7 +347,6 @@ fn main() {
     while window.is_open() {
         handle_events(&mut window,
                       &mut player,
-                      &mut game_over,
                       &mut score,
                       &mut platforms,
                       UPPER_BOUND,
@@ -356,16 +355,14 @@ fn main() {
                       &mut state_stack);
 
         // Update
-        if !game_over {
-            game_over = update(&mut platforms,
-                               &player,
-                               &mut score,
-                               &mut bg_sprites,
-                               UPPER_BOUND,
-                               &mut number_of_plats,
-                               &mut speed_bump,
-                               &state_stack);
-        }
+        update(&mut platforms,
+               &player,
+               &mut score,
+               &mut bg_sprites,
+               UPPER_BOUND,
+               &mut number_of_plats,
+               &mut speed_bump,
+               &mut state_stack);
 
         render(&mut window,
                &player,
@@ -373,7 +370,6 @@ fn main() {
                &score.text,
                &game_over_text,
                &bg_sprites,
-               &game_over,
                &state_stack);
     }
 }
