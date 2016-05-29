@@ -6,30 +6,33 @@ use rand::Rng;
 use sfml::system::Vector2f;
 use sfml::window::*;
 use sfml::graphics::*;
+mod platform;
+use platform::*;
 
 struct Score<'a> {
     number: u32,
     text: Text<'a>
 }
 
-fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> i32 {
-    *platforms = vec![RectangleShape::new().unwrap()];
+fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
+    *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static)];
     let mut ypos = -300.;
 
     let mut number_of_plats = 0;
     for i in 0..upper_bound {
         if i != upper_bound - 1 {
             let should_split = rand::thread_rng().gen_range(0, 6);
+            // 2 in 5 chance to split
             if should_split == 4 || should_split == 3 {
-                // 2 in 5 chance to split
+                // it's a split
                 let split_rand = rand::thread_rng().gen_range(1, 5);
                 let ysize = rand::thread_rng().gen_range(25, 125) as f32;
 
                 for i in 0..split_rand {
-                    let mut new_plat = RectangleShape::new().unwrap();
+                    let mut new_shape = RectangleShape::new().unwrap();
 
-                    new_plat.set_size(&Vector2f::new(1280. / split_rand as f32, ysize));
-                    new_plat.set_fill_color(&match rand::thread_rng().gen_range(0, 4) {
+                    new_shape.set_size(&Vector2f::new(1280. / split_rand as f32, ysize));
+                    new_shape.set_fill_color(&match rand::thread_rng().gen_range(0, 4) {
                         0 => Color::red(),
                         1 => Color::green(),
                         2 => Color::blue(),
@@ -37,18 +40,20 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> 
                     });
 
                     let rand_pos = Vector2f::new(1280. / split_rand as f32 * i as f32, ypos);
-                    new_plat.set_position(&rand_pos);
-                    platforms.push(new_plat);
+                    new_shape.set_position(&rand_pos);
+
+                    platforms.push(Platform::new(new_shape, PlatformType::Static));
                     number_of_plats += 1;
                 }
             } else {
+                // it's not a split
                 let ysize = rand::thread_rng().gen_range(25, 150) as f32;
 
-                let mut new_plat = RectangleShape::new().unwrap();
+                let mut new_shape = RectangleShape::new().unwrap();
 
-                new_plat.set_size(&Vector2f::new(rand::thread_rng().gen_range(150, 750) as f32,
+                new_shape.set_size(&Vector2f::new(rand::thread_rng().gen_range(150, 750) as f32,
                                                  ysize));
-                new_plat.set_fill_color(&match rand::thread_rng().gen_range(0, 4) {
+                new_shape.set_fill_color(&match rand::thread_rng().gen_range(0, 4) {
                     0 => Color::red(),
                     1 => Color::green(),
                     2 => Color::blue(),
@@ -57,21 +62,19 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> 
 
                 let rand_pos = Vector2f::new(rand::thread_rng().gen_range(0, 1000) as f32,
                                              ypos + rand::thread_rng().gen_range(-50, 50) as f32);
-                new_plat.set_position(&rand_pos);
-                platforms.push(new_plat);
+                new_shape.set_position(&rand_pos);
+                // make a moving platform
+                platforms.push(Platform::new(new_shape, PlatformType::Moving));
                 number_of_plats += 1;
             }
         } else if i == upper_bound - 1 {
             // create plat that begins next level
-            let mut new_plat = RectangleShape::new().unwrap();
-            new_plat.set_size(&Vector2f::new(1280., 25.));
-            new_plat.set_position(&Vector2f::new(0.,
-                                                 platforms[(number_of_plats) as usize]
-                                                     .get_position()
-                                                     .y -
-                                                 500.));
-            new_plat.set_fill_color(&Color::magenta());
-            platforms.push(new_plat);
+            let mut new_shape = RectangleShape::new().unwrap();
+            new_shape.set_size(&Vector2f::new(1280., 25.));
+            new_shape.set_position(&Vector2f::new(0., platforms[(number_of_plats) as usize].shape.get_position().y - 500.));
+            new_shape.set_fill_color(&Color::magenta());
+
+            platforms.push(Platform::new(new_shape, PlatformType::Static));
             number_of_plats += 1;
         }
         ypos -= 200.;
@@ -79,12 +82,7 @@ fn generate_platforms(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> 
     number_of_plats
 }
 
-// todo: clean
-fn next_level(platforms: &mut Vec<RectangleShape>, upper_bound: i32) -> i32 {
-    generate_platforms(platforms, upper_bound)
-}
-
-fn update(platforms: &mut Vec<RectangleShape>,
+fn update(platforms: &mut Vec<Platform>,
           player: &RectangleShape,
           score: &mut Score,
           bg_sprites: &mut Vec<Sprite>,
@@ -104,29 +102,35 @@ fn update(platforms: &mut Vec<RectangleShape>,
     let mut switch_level = false;
 
     for (i, plat) in platforms.iter_mut().enumerate() {
-        if player.get_global_bounds().intersects(&plat.get_global_bounds()) != None &&
-           (player.get_fill_color().0.red != plat.get_fill_color().0.red ||
-            player.get_fill_color().0.green != plat.get_fill_color().0.green ||
-            player.get_fill_color().0.blue != plat.get_fill_color().0.blue) {
+        if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+           (player.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
+            player.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
+            player.get_fill_color().0.blue != plat.shape.get_fill_color().0.blue) {
                if i == (*number_of_plats) as usize {
                    switch_level = true;
                } else {
                    game_over = true;
                }
 
-        } else if player.get_global_bounds().intersects(&plat.get_global_bounds()) != None &&
-           (player.get_fill_color().0.red == plat.get_fill_color().0.red ||
-            player.get_fill_color().0.green == plat.get_fill_color().0.green ||
-            player.get_fill_color().0.blue == plat.get_fill_color().0.blue) {
+        } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+           (player.get_fill_color().0.red == plat.shape.get_fill_color().0.red ||
+            player.get_fill_color().0.green == plat.shape.get_fill_color().0.green ||
+            player.get_fill_color().0.blue == plat.shape.get_fill_color().0.blue) {
                score.number += (1. * (*speed_bump + 1.)) as u32;
                score.text.set_string(&score.number.to_string());
         }
-        plat.move2f(0., 3. + *speed_bump);
+        plat.shape.move2f(0., 3. + *speed_bump);
+    }
+
+    for plat in platforms.iter_mut() {
+        if plat.plat_type == PlatformType::Moving {
+            plat.shape.move2f(0.6, 0.);
+        }
     }
 
     if switch_level {
         *speed_bump += 0.5;
-        *number_of_plats = next_level(platforms, upper_bound);
+        *number_of_plats = generate_platforms(platforms, upper_bound);
     }
 
     game_over
@@ -165,7 +169,7 @@ fn handle_events(window: &mut RenderWindow,
                  player: &mut RectangleShape,
                  game_over: &mut bool,
                  score: &mut Score,
-                 platforms: &mut Vec<RectangleShape>,
+                 platforms: &mut Vec<Platform>,
                  upper_bound: i32,
                  number_of_plats: &mut i32,
                  speed_bump: &mut f32) {
@@ -189,10 +193,11 @@ fn handle_events(window: &mut RenderWindow,
                 match code {
                     Key::Escape => window.close(),
                     Key::R => {
+                        //reset the game
                         *game_over = false;
                         score.number = 0;
                         score.text.set_string("0");
-                        *number_of_plats = next_level(platforms, upper_bound);
+                        *number_of_plats = generate_platforms(platforms, upper_bound);
                         *speed_bump = 0.;
                     }
                     _ => {}
@@ -207,7 +212,7 @@ fn handle_events(window: &mut RenderWindow,
 
 fn render(window: &mut RenderWindow,
           player: &RectangleShape,
-          platforms: &Vec<RectangleShape>,
+          platforms: &Vec<Platform>,
           score_text: &Text,
           game_over_text: &Text,
           bg_sprites: &Vec<Sprite>,
@@ -223,7 +228,7 @@ fn render(window: &mut RenderWindow,
     if !game_over {
         // Draw the platforms
         for plat in platforms {
-            window.draw(plat);
+            window.draw(&plat.shape);
         }
 
         // Draw player
@@ -268,12 +273,12 @@ fn main() {
     game_over_text.set_string("GAME OVER!");
 
 
-    let mut platforms = vec![RectangleShape::new().unwrap()];
+    let mut platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static)];
 
     let mut level_count: u8 = 0;
     const UPPER_BOUND: i32 = 30; //exclusive
 
-    let mut number_of_plats = next_level(&mut platforms, UPPER_BOUND);
+    let mut number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
 
     let mut player = RectangleShape::new().unwrap();
     player.set_size(&Vector2f::new(25., 25.));
