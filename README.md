@@ -1,6 +1,6 @@
 # rust-sfml-rocket [![Build Status](https://travis-ci.org/zakkor/rust-sfml-rocket.svg?branch=master)](https://travis-ci.org/zakkor/rust-sfml-rocket)
 
-> Rocket is a little game written in Rust, using the Rust-SFML library.
+> Rocket is a little game written in Rust, using the [Rust-SFML](https://github.com/jeremyletang/rust-sfml) library.
 
 ## Gameplay
 
@@ -16,10 +16,11 @@ Button                 | Action
 <kbd>Right Click</kbd> | Cycle player color to the right
 <kbd>R</kbd>           | Restart the game
 Move mouse left/right  | Move the player left/right on the horizontal axis
+<kbd>Esc</kbd>         | Pause/unpause the game
 
 ## Building
 
-You will need to install the SFML 2.3.x and CSFML 2.3 libraries to be able to build.
+You will need to install the [SFML 2.3.x](http://www.sfml-dev.org/download/sfml/2.3.2/) and [CSFML 2.3](http://www.sfml-dev.org/download/csfml/) libraries to be able to build.
 
 On Ubuntu 14.04 at least, using the precompiled versions of the libraries from www.sfml-dev.org will cause a runtime error, so you will need to build them yourself.
 
@@ -27,4 +28,4 @@ On Ubuntu 14.04 at least, using the precompiled versions of the libraries from w
 
 ## License
 
-GPLv3
+[GNU General Public License, version 3](https://github.com/zakkor/rust-sfml-rocket/blob/master/LICENSE.md)
