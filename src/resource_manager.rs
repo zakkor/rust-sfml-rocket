@@ -41,3 +41,5 @@ impl<I: Eq + Hash, R: Resource> ResourceManager<I, R> {
 pub enum TextureIdentifiers {
     Nebula
 }
+
+pub type TextureManager = ResourceManager<TextureIdentifiers, Texture>;

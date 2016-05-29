@@ -334,12 +334,12 @@ fn main() {
     player.set_outline_thickness(3.);
     player.set_outline_color(&Color::white());
 
-    let mut texture_manager = ResourceManager::<TextureIdentifiers, Texture>::new();
+    let mut texture_manager = TextureManager::new();
     texture_manager.load(TextureIdentifiers::Nebula, "res/nebula.png");
 
     let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
                               Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap()];
-    
+
     bg_sprites[0].set_position(&Vector2f::new(0., -720.));
     bg_sprites[1].set_position(&Vector2f::new(0., 0.));
 
@@ -347,11 +347,6 @@ fn main() {
 
     let mut state_stack = StateStack::new();
     state_stack.push(StateType::Playing);
-
-    let mut texture_manager = ResourceManager::<i32, Texture>::new();
-    texture_manager.load(0, "res/nebula.png");
-    texture_manager.get(0);
-
 
     while window.is_open() {
         handle_events(&mut window,
