@@ -1,5 +1,5 @@
 [package]
-name = "rsfml-rocket"
+name = "rust-sfml-rocket"
 version = "0.1.0"
 authors = ["zakkor@github.com <edward.partenie@gmail.com>"]
 
