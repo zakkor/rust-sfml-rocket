@@ -10,6 +10,8 @@ mod platform;
 use platform::*;
 mod state_stack;
 use state_stack::*;
+mod resource_manager;
+use resource_manager::*;
 
 struct Score<'a> {
     number: u32,
@@ -320,7 +322,7 @@ fn main() {
 
     let mut platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static)];
 
-    let mut level_count: u8 = 0;
+//    let mut level_count: u8 = 0;
     const UPPER_BOUND: i32 = 30; //exclusive
 
     let mut number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
@@ -332,10 +334,12 @@ fn main() {
     player.set_outline_thickness(3.);
     player.set_outline_color(&Color::white());
 
-    let bg_texture = Texture::new_from_file("res/nebula.png").unwrap();
+    let mut texture_manager = ResourceManager::<TextureIdentifiers, Texture>::new();
+    texture_manager.load(TextureIdentifiers::Nebula, "res/nebula.png");
 
-    let mut bg_sprites = vec![Sprite::new_with_texture(&bg_texture).unwrap(),
-                              Sprite::new_with_texture(&bg_texture).unwrap()];
+    let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
+                              Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap()];
+    
     bg_sprites[0].set_position(&Vector2f::new(0., -720.));
     bg_sprites[1].set_position(&Vector2f::new(0., 0.));
 
@@ -343,6 +347,11 @@ fn main() {
 
     let mut state_stack = StateStack::new();
     state_stack.push(StateType::Playing);
+
+    let mut texture_manager = ResourceManager::<i32, Texture>::new();
+    texture_manager.load(0, "res/nebula.png");
+    texture_manager.get(0);
+
 
     while window.is_open() {
         handle_events(&mut window,
