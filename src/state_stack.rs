@@ -1,4 +1,5 @@
 #[derive(Debug)]
+//TODO: replace game_over with GameOver state
 pub enum StateType {
     Playing,
     Menu

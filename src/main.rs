@@ -90,51 +90,60 @@ fn update(platforms: &mut Vec<Platform>,
           bg_sprites: &mut Vec<Sprite>,
           upper_bound: i32,
           number_of_plats: &mut i32,
-          speed_bump: &mut f32)
+          speed_bump: &mut f32,
+          state_stack: &StateStack)
           -> bool {
+    //TODO: replace game_over with GameOver state
     let mut game_over = false;
 
-    for bg in bg_sprites {
-        bg.move_(&Vector2f::new(0., 1. + *speed_bump));
-        if bg.get_position().y >= 720. {
-            bg.move_(&Vector2f::new(0., -720. * 2.))
+    match state_stack.top().unwrap() {
+        &StateType::Playing => {
+            for bg in bg_sprites {
+                bg.move_(&Vector2f::new(0., 1. + *speed_bump));
+                if bg.get_position().y >= 720. {
+                    bg.move_(&Vector2f::new(0., -720. * 2.))
+                }
+            }
+
+            let mut switch_level = false;
+
+            for (i, plat) in platforms.iter_mut().enumerate() {
+                if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                    (player.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
+                     player.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
+                     player.get_fill_color().0.blue != plat.shape.get_fill_color().0.blue) {
+                        if i == (*number_of_plats) as usize {
+                            switch_level = true;
+                        } else {
+                            game_over = true;
+                        }
+
+                    } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                    (player.get_fill_color().0.red == plat.shape.get_fill_color().0.red ||
+                     player.get_fill_color().0.green == plat.shape.get_fill_color().0.green ||
+                     player.get_fill_color().0.blue == plat.shape.get_fill_color().0.blue) {
+                        score.number += (1. * (*speed_bump + 1.)) as u32;
+                        score.text.set_string(&score.number.to_string());
+                    }
+                plat.shape.move2f(0., 3. + *speed_bump);
+            }
+
+            for plat in platforms.iter_mut() {
+                if plat.plat_type == PlatformType::Moving {
+                    plat.shape.move2f(0.6, 0.);
+                }
+            }
+
+            if switch_level {
+                *speed_bump += 0.5;
+                *number_of_plats = generate_platforms(platforms, upper_bound);
+            }
+
+        },
+        &StateType::Menu => {
+            /* TODO: replace with menu logic */
         }
     }
-
-    let mut switch_level = false;
-
-    for (i, plat) in platforms.iter_mut().enumerate() {
-        if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-           (player.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
-            player.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
-            player.get_fill_color().0.blue != plat.shape.get_fill_color().0.blue) {
-               if i == (*number_of_plats) as usize {
-                   switch_level = true;
-               } else {
-                   game_over = true;
-               }
-
-        } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-           (player.get_fill_color().0.red == plat.shape.get_fill_color().0.red ||
-            player.get_fill_color().0.green == plat.shape.get_fill_color().0.green ||
-            player.get_fill_color().0.blue == plat.shape.get_fill_color().0.blue) {
-               score.number += (1. * (*speed_bump + 1.)) as u32;
-               score.text.set_string(&score.number.to_string());
-        }
-        plat.shape.move2f(0., 3. + *speed_bump);
-    }
-
-    for plat in platforms.iter_mut() {
-        if plat.plat_type == PlatformType::Moving {
-            plat.shape.move2f(0.6, 0.);
-        }
-    }
-
-    if switch_level {
-        *speed_bump += 0.5;
-        *number_of_plats = generate_platforms(platforms, upper_bound);
-    }
-
     game_over
 }
 
@@ -239,32 +248,43 @@ fn render(window: &mut RenderWindow,
           score_text: &Text,
           game_over_text: &Text,
           bg_sprites: &Vec<Sprite>,
-          game_over: &bool) {
-    // Clear the window
-    window.clear(&Color::black());
+          game_over: &bool,
+          state_stack: &StateStack) {
+    match state_stack.top().unwrap() {
+        &StateType::Playing => {
+            // Clear the window
+            window.clear(&Color::black());
 
-    // Draw bg
-    for bg in bg_sprites {
-        window.draw(bg);
-    }
+            // Draw bg
+            for bg in bg_sprites {
+                window.draw(bg);
+            }
 
-    if !game_over {
-        // Draw the platforms
-        for plat in platforms {
-            window.draw(&plat.shape);
+            if !game_over {
+                // Draw the platforms
+                for plat in platforms {
+                    window.draw(&plat.shape);
+                }
+
+                // Draw player
+                window.draw(player);
+            } else {
+                window.draw(game_over_text);
+            }
+
+            // Draw level text
+            window.draw(score_text);
+
+            // Display things on screen
+            window.display();
+        },
+        &StateType::Menu => {
+            /* don't draw anything for now */
+            window.clear(&Color::blue());
+            window.display();
         }
-
-        // Draw player
-        window.draw(player);
-    } else {
-        window.draw(game_over_text);
     }
 
-    // Draw level text
-    window.draw(score_text);
-
-    // Display things on screen
-    window.display();
 }
 
 
@@ -343,7 +363,8 @@ fn main() {
                                &mut bg_sprites,
                                UPPER_BOUND,
                                &mut number_of_plats,
-                               &mut speed_bump);
+                               &mut speed_bump,
+                               &state_stack);
         }
 
         render(&mut window,
@@ -352,6 +373,7 @@ fn main() {
                &score.text,
                &game_over_text,
                &bg_sprites,
-               &game_over);
+               &game_over,
+               &state_stack);
     }
 }
