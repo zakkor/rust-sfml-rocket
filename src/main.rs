@@ -327,15 +327,18 @@ fn main() {
 
     let mut number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
 
-    let mut player = RectangleShape::new().unwrap();
-    player.set_size(&Vector2f::new(25., 25.));
-    player.set_fill_color(&Color::red());
-    player.set_position(&Vector2f::new(1280. / 2., 720. - 200.));
-    player.set_outline_thickness(3.);
-    player.set_outline_color(&Color::white());
-
     let mut texture_manager = TextureManager::new();
     texture_manager.load(TextureIdentifiers::Nebula, "res/nebula.png");
+    texture_manager.load(TextureIdentifiers::Rocket, "res/rocket_small.png");
+
+    let mut player = RectangleShape::new().unwrap();
+    player.set_size(&Vector2f::new(25., 50.));
+    player.set_fill_color(&Color::red());
+    player.set_position(&Vector2f::new(1280. / 2., 720. - 200.));
+    player.set_outline_thickness(1.);
+    player.set_outline_color(&Color::white());
+    player.set_texture(texture_manager.get(TextureIdentifiers::Rocket), true);
+
 
     let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
                               Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap()];
