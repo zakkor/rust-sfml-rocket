@@ -60,8 +60,15 @@ fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
                 let rand_pos = Vector2f::new(rand::thread_rng().gen_range(0, 1000) as f32,
                                              ypos + rand::thread_rng().gen_range(-50, 50) as f32);
                 new_shape.set_position(&rand_pos);
-                // make a moving platform
-                platforms.push(Platform::new(new_shape, PlatformType::Moving, move_speed));
+
+                // 50% chance for a moving platform
+                let move_roll = rand::thread_rng().gen_range(1, 3);
+                if move_roll == 2 {
+                    platforms.push(Platform::new(new_shape, PlatformType::Moving, move_speed));
+                }
+                else {
+                    platforms.push(Platform::new(new_shape, PlatformType::Static, move_speed));
+                }
                 number_of_plats += 1;
             }
         } else if i == upper_bound - 1 {
