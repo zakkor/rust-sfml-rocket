@@ -3,20 +3,12 @@ extern crate rand;
 
 use rand::Rng;
 
-use sfml::system::Vector2f;
-use sfml::window::*;
-use sfml::graphics::*;
-mod platform;
-use platform::*;
-mod state_stack;
-use state_stack::*;
-mod resource_manager;
-use resource_manager::*;
+use sfml::graphics::*; use sfml::system::*; use sfml::window::*;
 
-struct Score<'a> {
-    number: u32,
-    text: Text<'a>
-}
+mod platform; use platform::*;
+mod state_stack; use state_stack::*;
+mod resource_manager; use resource_manager::*;
+mod score; use score::Score;
 
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
     *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
@@ -244,11 +236,7 @@ fn handle_events(window: &mut RenderWindow,
                             Key::R => {
                                 //reset the game
                                 state_stack.pop();
-                                score.number = 0;
-                                score.text.set_string("0");
-                                score.text.set_color(&Color::white());
-                                score.text.set_position(&Vector2f::new(1280. / 2., 25.));
-                                score.text.set_character_size(30);
+                                score.reset();
                                 *number_of_plats = generate_platforms(platforms, upper_bound);
                                 *speed_bump = 0.5;
                             },
@@ -321,12 +309,9 @@ fn main() {
     let mut font_manager = FontManager::new();
     font_manager.load(FontIdentifiers::Arial, "res/arial.ttf");
 
-    let mut score = Score { number: 0, text: Text::new().unwrap() };
+    let mut score = Score::new();
     score.text.set_font(font_manager.get(FontIdentifiers::Arial));
-    score.text.set_position(&Vector2f::new(1280. / 2., 25.));
-    score.text.set_color(&Color::white());
-    score.text.set_character_size(30);
-    score.text.set_string(&score.number.to_string());
+
 
     let mut game_over_text = Text::new().unwrap();
     game_over_text.set_font(font_manager.get(FontIdentifiers::Arial));
