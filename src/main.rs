@@ -44,7 +44,7 @@ fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
             } else {
                 // it's not a split
                 let ysize = rand::thread_rng().gen_range(25, 150) as f32;
-                let move_speed = rand::thread_rng().gen_range(1, 5) as f32;
+                let move_speed = rand::thread_rng().gen_range(100, 500) as f32;
 
                 let mut new_shape = RectangleShape::new().unwrap();
 
@@ -86,12 +86,14 @@ fn update(platforms: &mut Vec<Platform>,
           upper_bound: i32,
           number_of_plats: &mut i32,
           speed_bump: &mut f32,
-          state_stack: &mut StateStack)
+          state_stack: &mut StateStack,
+          time: &Time)
 {
     match state_stack.top().unwrap() {
         &StateType::Playing => {
+            let dt = time.as_seconds();
             for bg in bg_sprites {
-                bg.move_(&Vector2f::new(0., 1. + *speed_bump));
+                bg.move_(&Vector2f::new(0., (100. + *speed_bump) * dt ));
                 if bg.get_position().y >= 720. {
                     bg.move_(&Vector2f::new(0., -720. * 2.))
                 }
@@ -124,15 +126,16 @@ fn update(platforms: &mut Vec<Platform>,
                     (player.get_fill_color().0.red == plat.shape.get_fill_color().0.red ||
                      player.get_fill_color().0.green == plat.shape.get_fill_color().0.green ||
                      player.get_fill_color().0.blue == plat.shape.get_fill_color().0.blue) {
-                        score.number += (1. * (*speed_bump + 1.)) as u32;
+                        score.number += (1. * (*speed_bump + 1.) * (dt + 1.)) as u32;
                         score.text.set_string(&score.number.to_string());
                     }
-                plat.shape.move2f(0., 2. + *speed_bump);
+                plat.shape.move2f(0., (200. + *speed_bump) * dt);
             }
 
 
+            let speed_bump_dt = *speed_bump * dt;
             for plat in platforms.iter_mut() {
-                plat.move_platform(speed_bump);
+                plat.move_platform(&speed_bump_dt);
             }
 
             if switch_level {
@@ -312,7 +315,6 @@ fn main() {
     let mut score = Score::new();
     score.text.set_font(font_manager.get(FontIdentifiers::Arial));
 
-
     let mut game_over_text = Text::new().unwrap();
     game_over_text.set_font(font_manager.get(FontIdentifiers::Arial));
     game_over_text.set_position(&Vector2f::new(1280. / 2. - 175., 250.));
@@ -352,6 +354,9 @@ fn main() {
     let mut state_stack = StateStack::new();
     state_stack.push(StateType::Playing);
 
+    // delta time
+    let mut clock = Clock::new();
+
     while window.is_open() {
         handle_events(&mut window,
                       &mut player,
@@ -363,6 +368,7 @@ fn main() {
                       &mut state_stack);
 
         // Update
+        let time = clock.restart();
         update(&mut platforms,
                &player,
                &mut score,
@@ -370,7 +376,8 @@ fn main() {
                UPPER_BOUND,
                &mut number_of_plats,
                &mut speed_bump,
-               &mut state_stack);
+               &mut state_stack,
+               &time);
 
         render(&mut window,
                &player,
