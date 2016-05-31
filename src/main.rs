@@ -9,6 +9,7 @@ mod platform; use platform::*;
 mod state_stack; use state_stack::*;
 mod resource_manager; use resource_manager::*;
 mod score; use score::Score;
+mod particle_manager; use particle_manager::*;
 
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
     *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
@@ -94,7 +95,8 @@ fn update(platforms: &mut Vec<Platform>,
           number_of_plats: &mut i32,
           speed_bump: &mut f32,
           state_stack: &mut StateStack,
-          time: &Time)
+          time: &Time,
+          particle_manager: &mut ParticleManager)
 {
     match state_stack.top().unwrap() {
         &StateType::Playing => {
@@ -133,8 +135,11 @@ fn update(platforms: &mut Vec<Platform>,
                     (player.get_fill_color().0.red == plat.shape.get_fill_color().0.red ||
                      player.get_fill_color().0.green == plat.shape.get_fill_color().0.green ||
                      player.get_fill_color().0.blue == plat.shape.get_fill_color().0.blue) {
+                        // player is successfully passing through a platform
                         score.number += (1. * (*speed_bump + 1.) * (dt + 1.)) as u32;
                         score.text.set_string(&score.number.to_string());
+                        particle_manager.set_position(&player.get_position());
+                        particle_manager.spawn_new_particle(&player.get_fill_color());
                     }
                 plat.shape.move2f(0., (200. + *speed_bump) * dt);
             }
@@ -144,6 +149,9 @@ fn update(platforms: &mut Vec<Platform>,
             for plat in platforms.iter_mut() {
                 plat.move_platform(&speed_bump_dt);
             }
+
+            // update particles
+            particle_manager.update(dt);
 
             if switch_level {
                 *speed_bump += 0.5;
@@ -241,6 +249,7 @@ fn handle_events(window: &mut RenderWindow,
             },
             &StateType::GameOver => {
                 match event {
+                    event::Closed => { window.close(); },
                     event::KeyReleased { code, .. } => {
                         match code {
                             Key::R => {
@@ -267,7 +276,8 @@ fn render(window: &mut RenderWindow,
           score_text: &Text,
           game_over_text: &Text,
           bg_sprites: &Vec<Sprite>,
-          state_stack: &StateStack) {
+          state_stack: &StateStack,
+          particle_manager: &ParticleManager) {
 
     match state_stack.top().unwrap() {
         &StateType::Playing => {
@@ -282,6 +292,11 @@ fn render(window: &mut RenderWindow,
             // Draw the platforms
             for plat in platforms {
                 window.draw(&plat.shape);
+            }
+
+            // Draw particles
+            for p in particle_manager.particles.iter() {
+                window.draw(&p.shape);
             }
 
             // Draw player
@@ -348,6 +363,7 @@ fn main() {
     player.set_outline_thickness(1.);
     player.set_outline_color(&Color::white());
     player.set_texture(texture_manager.get(TextureIdentifiers::Rocket), true);
+    player.set_origin(&Vector2f::new(25./2., 25.));
 
 
     let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
@@ -363,6 +379,7 @@ fn main() {
 
     // delta time
     let mut clock = Clock::new();
+    let mut particle_manager = ParticleManager::new();
 
     while window.is_open() {
         handle_events(&mut window,
@@ -384,7 +401,8 @@ fn main() {
                &mut number_of_plats,
                &mut speed_bump,
                &mut state_stack,
-               &time);
+               &time,
+               &mut particle_manager);
 
         render(&mut window,
                &player,
@@ -392,6 +410,7 @@ fn main() {
                &score.text,
                &game_over_text,
                &bg_sprites,
-               &state_stack);
+               &state_stack,
+               &particle_manager);
     }
 }
