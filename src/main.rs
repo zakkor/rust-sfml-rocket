@@ -139,9 +139,16 @@ fn update(platforms: &mut Vec<Platform>,
                         score.number += (1. * (*speed_bump + 1.) * (dt + 1.)) as u32;
                         score.text.set_string(&score.number.to_string());
                         particle_manager.set_position(&player.get_position());
-                        particle_manager.spawn_new_particle(&player.get_fill_color());
+                        particle_manager.spawn_random_particle(&player.get_fill_color());
                     }
                 plat.shape.move2f(0., (200. + *speed_bump) * dt);
+                if particle_manager.clock.get_elapsed_time().as_seconds() >= 0.1 {
+                    particle_manager.set_position(&player.get_position());
+                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.));
+                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.));
+                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.));
+                    particle_manager.clock.restart();
+                }
             }
 
 
