@@ -128,7 +128,9 @@ fn update(platforms: &mut Vec<Platform>,
                                     0...500 => Color::red(),
                                     501...1000 => Color::yellow(),
                                     _ => Color::green()
-                            } );
+                                } );
+                            // reset particles
+                            particle_manager.reset();
                         }
 
                     } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&

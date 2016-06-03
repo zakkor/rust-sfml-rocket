@@ -75,4 +75,8 @@ impl<'a> ParticleManager<'a> {
         let shape = ParticleManager::create_particle_shape(&self.position, color);
         self.particles.push(Particle::new(shape, *dir));
     }
+
+    pub fn reset(&mut self) {
+        self.particles.clear();
+    }
 }
