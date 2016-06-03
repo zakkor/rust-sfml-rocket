@@ -7,6 +7,9 @@ rust:
   - stable
   - beta
   - nightly
+###########################################################################################
+### put this in a bash script and modify the paths to fit your own directory structure for
+### easy compiling and installing of SFML libraries
 script:
   - mkdir sfml_install
   # TODO: Maybe investigate why the certificate checks for the SFML sources fail
@@ -31,6 +34,7 @@ script:
 addons:
   apt:
     packages:
+    ### make sure you have these packages installed (or the equivalent for your distro)
     - libpthread-stubs0-dev
     - libgl1-mesa-dev
     - libx11-dev
