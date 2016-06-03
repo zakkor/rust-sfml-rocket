@@ -96,7 +96,8 @@ fn update(platforms: &mut Vec<Platform>,
           speed_bump: &mut f32,
           state_stack: &mut StateStack,
           time: &Time,
-          particle_manager: &mut ParticleManager)
+          particle_manager: &mut ParticleManager,
+          view: &mut View)
 {
     match state_stack.top().unwrap() {
         &StateType::Playing => {
@@ -107,6 +108,9 @@ fn update(platforms: &mut Vec<Platform>,
                     bg.move_(&Vector2f::new(0., -720. * 2.))
                 }
             }
+
+            //reset view
+            view.set_center(&Vector2f::new(1280./2., 720./2.));
 
             let mut switch_level = false;
 
@@ -142,6 +146,11 @@ fn update(platforms: &mut Vec<Platform>,
                         score.text.set_string(&score.number.to_string());
                         particle_manager.set_position(&player.get_position());
                         particle_manager.spawn_random_particle(&player.get_fill_color());
+
+                        // screen shake
+                        let x_offset = rand::thread_rng().gen_range(-2, 2) as f32;
+                        let y_offset = rand::thread_rng().gen_range(-2, 2) as f32;
+                        view.move2f(x_offset, y_offset);
                     }
                 plat.shape.move2f(0., (200. + *speed_bump) * dt);
                 if particle_manager.clock.get_elapsed_time().as_seconds() >= 0.1 {
@@ -286,10 +295,13 @@ fn render(window: &mut RenderWindow,
           game_over_text: &Text,
           bg_sprites: &Vec<Sprite>,
           state_stack: &StateStack,
-          particle_manager: &ParticleManager) {
+          particle_manager: &ParticleManager,
+          view: &View) {
 
     match state_stack.top().unwrap() {
         &StateType::Playing => {
+            // Set view
+            window.set_view(view);
             // Clear the window
             window.clear(&Color::black());
 
@@ -390,6 +402,10 @@ fn main() {
     let mut clock = Clock::new();
     let mut particle_manager = ParticleManager::new();
 
+    // view
+    let mut view = View::new_init(&Vector2f::new(1280./2., 720./2.), &Vector2f::new(1280., 720.)).unwrap();
+    window.set_view(&view);
+
     while window.is_open() {
         handle_events(&mut window,
                       &mut player,
@@ -411,7 +427,8 @@ fn main() {
                &mut speed_bump,
                &mut state_stack,
                &time,
-               &mut particle_manager);
+               &mut particle_manager,
+               &mut view);
 
         render(&mut window,
                &player,
@@ -420,6 +437,7 @@ fn main() {
                &game_over_text,
                &bg_sprites,
                &state_stack,
-               &particle_manager);
+               &particle_manager,
+               &view);
     }
 }
