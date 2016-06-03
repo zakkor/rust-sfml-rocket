@@ -7,14 +7,16 @@ use sfml::system::*;
 
 pub struct Particle<'a> {
     pub shape: RectangleShape<'a>,
-    pub direction: Vector2f
+    pub direction: Vector2f,
+    pub mark_for_explosion: bool
 }
 
 impl<'a> Particle<'a> {
     fn new(shape: RectangleShape<'a>, direction: Vector2f) -> Self {
         Particle {
             shape: shape,
-            direction: direction
+            direction: direction,
+            mark_for_explosion: false
         }
     }
 }
@@ -37,16 +39,30 @@ impl<'a> ParticleManager<'a> {
         }
     }
 
-    pub fn update(&mut self, dt: f32) {
+    pub fn update(&mut self, dt: f32, downwards_speed: f32) {
         for (i, p) in self.particles.iter_mut().enumerate() {
             if p.shape.get_scale().x <= 0.05 {
                 self.cleanup.push(i);
             }
-            p.shape.move2f(p.direction.x * dt, p.direction.y * dt);
-            p.shape.rotate(90. * dt);
-            p.shape.scale2f(0.95, 0.95);
+            else if p.mark_for_explosion {
+                if p.shape.get_scale().x >= 1.5 {
+                    self.cleanup.push(i);
+                }
+                else {
+                    p.shape.move2f(0., downwards_speed);
+                    p.shape.scale2f(1.1, 1.1);
+                }
+            }
+            else {
+                p.shape.move2f(p.direction.x * dt, p.direction.y * dt);
+                p.shape.rotate(90. * dt);
+                p.shape.scale2f(0.95, 0.95);
+            }
         }
-        for i in self.cleanup.iter() {
+
+        // need reverse iterator, otherwise removing the smaller index particles first will cause a
+        // segfault for the bigger index ones
+        for i in self.cleanup.iter().rev() {
             self.particles.remove(*i);
         }
         self.cleanup.clear();

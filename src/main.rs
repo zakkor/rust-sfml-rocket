@@ -114,6 +114,8 @@ fn update(platforms: &mut Vec<Platform>,
 
             let mut switch_level = false;
 
+
+
             for (i, plat) in platforms.iter_mut().enumerate() {
                 if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
                     (player.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
@@ -152,7 +154,10 @@ fn update(platforms: &mut Vec<Platform>,
                         let y_offset = rand::thread_rng().gen_range(-2, 2) as f32;
                         view.move2f(x_offset, y_offset);
                     }
+
+                // move all platforms downwards
                 plat.shape.move2f(0., (200. + *speed_bump) * dt);
+
                 if particle_manager.clock.get_elapsed_time().as_seconds() >= 0.1 {
                     particle_manager.set_position(&player.get_position());
                     particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.));
@@ -160,8 +165,23 @@ fn update(platforms: &mut Vec<Platform>,
                     particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.));
                     particle_manager.clock.restart();
                 }
-            }
 
+                // check for particle collision with other platforms and mark them for explosion
+                for part in particle_manager.particles.iter_mut() {
+                    if part.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                        (part.shape.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
+                         part.shape.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
+                         part.shape.get_fill_color().0.blue != plat.shape.get_fill_color().0.blue) {
+                            // make sure we don't explode the thruster particles
+                            // TODO: perhaps use an enum instead of checking for the color
+                            if part.shape.get_fill_color().0.red != 255 ||
+                                part.shape.get_fill_color().0.green != 255 ||
+                                part.shape.get_fill_color().0.blue != 0 {
+                                    part.mark_for_explosion = true;
+                                }
+                        }
+                }
+            }
 
             let speed_bump_dt = *speed_bump * dt;
             for plat in platforms.iter_mut() {
@@ -169,7 +189,7 @@ fn update(platforms: &mut Vec<Platform>,
             }
 
             // update particles
-            particle_manager.update(dt);
+            particle_manager.update(dt, (200. + *speed_bump) * dt);
 
             if switch_level {
                 *speed_bump += 0.5;
