@@ -45,7 +45,7 @@ impl<'a> ParticleManager<'a> {
                 self.cleanup.push(i);
             }
             else if p.mark_for_explosion {
-                if p.shape.get_scale().x >= 1.5 {
+                if p.shape.get_scale().x >= 1.1 {
                     self.cleanup.push(i);
                 }
                 else {
