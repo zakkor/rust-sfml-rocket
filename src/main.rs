@@ -282,9 +282,11 @@ fn main() {
                             } else {
                                 // game over
                                 state_stack.push(StateType::GameOver);
-                                let score_width = score.text.get_local_bounds().width;
+                                let score_rect = score.text.get_local_bounds();
+                                score.text.set_origin(&Vector2f::new(score_rect.left + score_rect.width / 2.,
+                                                      score_rect.top + score_rect.height / 2.));
                                 score.text.set_character_size(60);
-                                score.text.set_position(&Vector2f::new(1280. / 2. - score_width / 2., 350.));
+                                score.text.set_position(&Vector2f::new(1280. / 2., 350.));
                                 score.text.set_color(
                                     &match score.number {
                                         0...500 => Color::red(),
