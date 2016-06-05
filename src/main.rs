@@ -99,8 +99,8 @@ fn update(platforms: &mut Vec<Platform>,
           particle_manager: &mut ParticleManager,
           view: &mut View)
 {
-    match state_stack.top().unwrap() {
-        &StateType::Playing => {
+    match *state_stack.top().unwrap() {
+        StateType::Playing => {
             let dt = time.as_seconds();
             for bg in bg_sprites {
                 bg.move_(&Vector2f::new(0., (100. + *speed_bump) * dt ));
@@ -167,7 +167,7 @@ fn update(platforms: &mut Vec<Platform>,
                 }
 
                 // check for particle collision with other platforms and mark them for explosion
-                for part in particle_manager.particles.iter_mut() {
+                for part in &mut particle_manager.particles {
                     if part.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
                         (part.shape.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
                          part.shape.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
@@ -197,10 +197,10 @@ fn update(platforms: &mut Vec<Platform>,
             }
 
         },
-        &StateType::Menu => {
+        StateType::Menu => {
             /* TODO: replace with menu logic */
         }
-        &StateType::GameOver => {
+        StateType::GameOver => {
             /* nothing */
         }
     }
@@ -245,8 +245,8 @@ fn handle_events(window: &mut RenderWindow,
                  state_stack: &mut StateStack) {
     // Handle events
     for event in window.events() {
-        match state_stack.top().unwrap() {
-            &StateType::Playing => {
+        match *state_stack.top().unwrap() {
+            StateType::Playing => {
                 match event {
                     event::Closed => window.close(),
                     event::MouseMoved { x, .. } => {
@@ -260,32 +260,23 @@ fn handle_events(window: &mut RenderWindow,
                         }
                     }
                     event::KeyReleased { code, .. } => {
-                        match code {
-                            Key::Escape => {
-                                state_stack.push(StateType::Menu);
-                                println!("{:?}", state_stack);
-                            },
-                            _ => {}
+                        if let Key::Escape = code {
+                            state_stack.push(StateType::Menu);
+                            println!("{:?}", state_stack);
                         }
                     }
                     _ => { /* do nothing */ }
                 }
             },
-            &StateType::Menu => {
-                match event {
-                    event::KeyReleased { code, .. } => {
-                        match code {
-                            Key::Escape => {
-                                state_stack.pop();
-                                println!("{:?}", state_stack);
-                            },
-                            _ => {}
-                        }
-                    },
-                    _ => {}
+            StateType::Menu => {
+                if let event::KeyReleased { code, .. } = event {
+                    if let Key::Escape = code {
+                        state_stack.pop();
+                        println!("{:?}", state_stack);
+                    }
                 }
             },
-            &StateType::GameOver => {
+            StateType::GameOver => {
                 match event {
                     event::Closed => { window.close(); },
                     event::KeyReleased { code, .. } => {
@@ -318,8 +309,8 @@ fn render(window: &mut RenderWindow,
           particle_manager: &ParticleManager,
           view: &View) {
 
-    match state_stack.top().unwrap() {
-        &StateType::Playing => {
+    match *state_stack.top().unwrap() {
+        StateType::Playing => {
             // Set view
             window.set_view(view);
             // Clear the window
@@ -346,11 +337,11 @@ fn render(window: &mut RenderWindow,
             // Draw level text
             window.draw(score_text);
         },
-        &StateType::Menu => {
+        StateType::Menu => {
             /* don't draw anything for now */
             window.clear(&Color::blue());
         },
-        &StateType::GameOver => {
+        StateType::GameOver => {
             window.clear(&Color::black());
             window.draw(game_over_text);
             window.draw(score_text);

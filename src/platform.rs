@@ -40,13 +40,11 @@ impl<'a> Platform<'a> {
                     self.shape.move2f( self.move_speed * multiplier, 0.);
                 }
             }
+            else if self.shape.get_position().x <= 0. {
+                self.move_dir = MoveDirection::Right;
+            }
             else {
-                if self.shape.get_position().x <= 0. {
-                    self.move_dir = MoveDirection::Right;
-                }
-                else {
-                    self.shape.move2f( -self.move_speed * multiplier, 0.);
-                }
+                self.shape.move2f( -self.move_speed * multiplier, 0.);
             }
         }
     }
