@@ -159,8 +159,10 @@ fn main() {
     player.set_outline_color(&Color::white());
     player.set_texture(texture_manager.get(TextureIdentifiers::Rocket), true);
     player.set_origin(&Vector2f::new(25./2., 25.));
+    // TODO: refactor these into a Player struct
     let mut is_dashing = false;
     let mut dash_clock = Clock::new();
+    //---
 
 
     let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
@@ -174,15 +176,14 @@ fn main() {
     let mut state_stack = StateStack::new();
     state_stack.push(StateType::Playing);
 
+    let mut particle_manager = ParticleManager::new();
+
     // delta time
     let mut clock = Clock::new();
-    let mut particle_manager = ParticleManager::new();
 
     // view
     let mut view = View::new_init(&Vector2f::new(1280./2., 720./2.), &Vector2f::new(1280., 720.)).unwrap();
     window.set_view(&view);
-
-    dash_clock.restart();
 
     while window.is_open() {
         //___________________ EVENTS_BEGIN ______________//
@@ -282,8 +283,8 @@ fn main() {
                                 // game over
                                 state_stack.push(StateType::GameOver);
                                 let score_width = score.text.get_local_bounds().width;
-                                score.text.set_position(&Vector2f::new(1280. / 2. - score_width / 2., 350.));
                                 score.text.set_character_size(60);
+                                score.text.set_position(&Vector2f::new(1280. / 2. - score_width / 2., 350.));
                                 score.text.set_color(
                                     &match score.number {
                                         0...500 => Color::red(),
