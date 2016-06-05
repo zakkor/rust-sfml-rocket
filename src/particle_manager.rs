@@ -39,7 +39,9 @@ impl<'a> ParticleManager<'a> {
         }
     }
 
-    pub fn update(&mut self, dt: f32, downwards_speed: f32) {
+    pub fn update(&mut self,
+                  dt: f32,
+                  downwards_speed: f32) {
         for (i, p) in self.particles.iter_mut().enumerate() {
             if p.shape.get_scale().x <= 0.05 {
                 self.cleanup.push(i);
@@ -87,8 +89,13 @@ impl<'a> ParticleManager<'a> {
         self.particles.push(Particle::new(shape, direction));
     }
 
-    pub fn spawn_directed_particle(&mut self, color: &Color, dir: &Vector2f) {
-        let shape = ParticleManager::create_particle_shape(&self.position, color);
+    pub fn spawn_directed_particle(&mut self, color: &Color, dir: &Vector2f, is_big: &bool) {
+        let mut shape = ParticleManager::create_particle_shape(&self.position, color);
+
+        if *is_big {
+            shape.set_scale2f(2., 2.);
+        }
+
         self.particles.push(Particle::new(shape, *dir));
     }
 

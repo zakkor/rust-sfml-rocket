@@ -10,17 +10,7 @@ mod state_stack; use state_stack::*;
 mod resource_manager; use resource_manager::*;
 mod score; use score::Score;
 mod particle_manager; use particle_manager::*;
-
-fn are_colors_equal(c1: &Color, c2: &Color) -> bool {
-    if c1.0.red == c2.0.red &&
-        c1.0.green == c2.0.green &&
-        c1.0.blue == c2.0.blue {
-            true
-        }
-    else {
-        false
-    }
-}
+mod util; use util::are_colors_equal;
 
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
     *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
@@ -169,19 +159,23 @@ fn update(platforms: &mut Vec<Platform>,
                         particle_manager.spawn_random_particle(&player.get_fill_color());
 
                         // screen shake
-                        let x_offset = rand::thread_rng().gen_range(-2, 2) as f32;
-                        let y_offset = rand::thread_rng().gen_range(-2, 2) as f32;
+                        // make it shake harder when player is dashing
+                        let shake_bound = if *is_dashing { 6 } else { 2 };
+                        let x_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
+                        let y_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
                         view.move2f(x_offset, y_offset);
                     }
 
                 // move all platforms downwards
                 plat.shape.move2f(0., (total_speed + *speed_bump) * dt);
 
-                if particle_manager.clock.get_elapsed_time().as_seconds() >= 0.1 {
+                let thrust_particle_spawn_time = if *is_dashing { 0.07 } else { 0.1 };
+
+                if particle_manager.clock.get_elapsed_time().as_seconds() >= thrust_particle_spawn_time {
                     particle_manager.set_position(&player.get_position());
-                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.));
-                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.));
-                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.));
+                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.), is_dashing);
+                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.), is_dashing);
+                    particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.), is_dashing);
                     particle_manager.clock.restart();
                 }
 
@@ -191,11 +185,9 @@ fn update(platforms: &mut Vec<Platform>,
                         !are_colors_equal(&part.shape.get_fill_color(), &plat.shape.get_fill_color()) {
                             // make sure we don't explode the thruster particles
                             // TODO: perhaps use an enum instead of checking for the color
-                            if part.shape.get_fill_color().0.red != 255 ||
-                                part.shape.get_fill_color().0.green != 255 ||
-                                part.shape.get_fill_color().0.blue != 0 {
-                                    part.mark_for_explosion = true;
-                                }
+                            if !are_colors_equal(&part.shape.get_fill_color(), &Color::yellow()) {
+                                part.mark_for_explosion = true;
+                            }
                         }
                 }
             }
