@@ -14,6 +14,7 @@ Button                 | Action
 ---------------------- | ------------
 <kbd>Left Click</kbd>  | Cycle player color to the left
 <kbd>Right Click</kbd> | Cycle player color to the right
+<kbd>Space</kbd>       | Dash
 <kbd>R</kbd>           | Restart the game
 Move mouse left/right  | Move the player left/right on the horizontal axis
 <kbd>Esc</kbd>         | Pause/unpause the game
