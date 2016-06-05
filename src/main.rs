@@ -11,6 +11,17 @@ mod resource_manager; use resource_manager::*;
 mod score; use score::Score;
 mod particle_manager; use particle_manager::*;
 
+fn are_colors_equal(c1: &Color, c2: &Color) -> bool {
+    if c1.0.red == c2.0.red &&
+        c1.0.green == c2.0.green &&
+        c1.0.blue == c2.0.blue {
+            true
+        }
+    else {
+        false
+    }
+}
+
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
     *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
     let mut ypos = -300.;
@@ -97,13 +108,20 @@ fn update(platforms: &mut Vec<Platform>,
           state_stack: &mut StateStack,
           time: &Time,
           particle_manager: &mut ParticleManager,
-          view: &mut View)
+          view: &mut View,
+          is_dashing: &mut bool,
+          dash_clock: &mut Clock)
 {
     match *state_stack.top().unwrap() {
         StateType::Playing => {
             let dt = time.as_seconds();
+
+            const DASH_SPEED: f32 = 200.;
+            const PLAYER_SPEED: f32 = 200.;
+            let total_speed = if *is_dashing { PLAYER_SPEED + DASH_SPEED } else { PLAYER_SPEED };
+
             for bg in bg_sprites {
-                bg.move_(&Vector2f::new(0., (100. + *speed_bump) * dt ));
+                bg.move_(&Vector2f::new(0., (total_speed / 4. + *speed_bump) * dt ));
                 if bg.get_position().y >= 720. {
                     bg.move_(&Vector2f::new(0., -720. * 2.))
                 }
@@ -115,12 +133,14 @@ fn update(platforms: &mut Vec<Platform>,
             let mut switch_level = false;
 
 
+            // dash expired
+            if dash_clock.get_elapsed_time().as_seconds() >= 0.5 {
+                *is_dashing = false;
+            }
 
             for (i, plat) in platforms.iter_mut().enumerate() {
                 if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                    (player.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
-                     player.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
-                     player.get_fill_color().0.blue != plat.shape.get_fill_color().0.blue) {
+                    !are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
                         if i == (*number_of_plats) as usize {
                             switch_level = true;
                         } else {
@@ -139,10 +159,9 @@ fn update(platforms: &mut Vec<Platform>,
                             particle_manager.reset();
                         }
 
-                    } else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                    (player.get_fill_color().0.red == plat.shape.get_fill_color().0.red ||
-                     player.get_fill_color().0.green == plat.shape.get_fill_color().0.green ||
-                     player.get_fill_color().0.blue == plat.shape.get_fill_color().0.blue) {
+                    }
+                else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                    are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
                         // player is successfully passing through a platform
                         score.number += (1. * (*speed_bump + 1.) * (dt + 1.)) as u32;
                         score.text.set_string(&score.number.to_string());
@@ -156,7 +175,7 @@ fn update(platforms: &mut Vec<Platform>,
                     }
 
                 // move all platforms downwards
-                plat.shape.move2f(0., (200. + *speed_bump) * dt);
+                plat.shape.move2f(0., (total_speed + *speed_bump) * dt);
 
                 if particle_manager.clock.get_elapsed_time().as_seconds() >= 0.1 {
                     particle_manager.set_position(&player.get_position());
@@ -169,9 +188,7 @@ fn update(platforms: &mut Vec<Platform>,
                 // check for particle collision with other platforms and mark them for explosion
                 for part in &mut particle_manager.particles {
                     if part.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                        (part.shape.get_fill_color().0.red != plat.shape.get_fill_color().0.red ||
-                         part.shape.get_fill_color().0.green != plat.shape.get_fill_color().0.green ||
-                         part.shape.get_fill_color().0.blue != plat.shape.get_fill_color().0.blue) {
+                        !are_colors_equal(&part.shape.get_fill_color(), &plat.shape.get_fill_color()) {
                             // make sure we don't explode the thruster particles
                             // TODO: perhaps use an enum instead of checking for the color
                             if part.shape.get_fill_color().0.red != 255 ||
@@ -189,7 +206,7 @@ fn update(platforms: &mut Vec<Platform>,
             }
 
             // update particles
-            particle_manager.update(dt, (200. + *speed_bump) * dt);
+            particle_manager.update(dt, (total_speed + *speed_bump) * dt);
 
             if switch_level {
                 *speed_bump += 0.5;
@@ -242,7 +259,9 @@ fn handle_events(window: &mut RenderWindow,
                  upper_bound: i32,
                  number_of_plats: &mut i32,
                  speed_bump: &mut f32,
-                 state_stack: &mut StateStack) {
+                 state_stack: &mut StateStack,
+                 is_dashing: &mut bool,
+                 dash_clock: &mut Clock) {
     // Handle events
     for event in window.events() {
         match *state_stack.top().unwrap() {
@@ -263,6 +282,10 @@ fn handle_events(window: &mut RenderWindow,
                         if let Key::Escape = code {
                             state_stack.push(StateType::Menu);
                             println!("{:?}", state_stack);
+                        }
+                        if let Key::Space = code {
+                            *is_dashing = true;
+                            dash_clock.restart();
                         }
                     }
                     _ => { /* do nothing */ }
@@ -298,60 +321,6 @@ fn handle_events(window: &mut RenderWindow,
 
     }
 }
-
-fn render(window: &mut RenderWindow,
-          player: &RectangleShape,
-          platforms: &Vec<Platform>,
-          score_text: &Text,
-          game_over_text: &Text,
-          bg_sprites: &Vec<Sprite>,
-          state_stack: &StateStack,
-          particle_manager: &ParticleManager,
-          view: &View) {
-
-    match *state_stack.top().unwrap() {
-        StateType::Playing => {
-            // Set view
-            window.set_view(view);
-            // Clear the window
-            window.clear(&Color::black());
-
-            // Draw bg
-            for bg in bg_sprites {
-                window.draw(bg);
-            }
-
-            // Draw the platforms
-            for plat in platforms {
-                window.draw(&plat.shape);
-            }
-
-            // Draw particles
-            for p in particle_manager.particles.iter() {
-                window.draw(&p.shape);
-            }
-
-            // Draw player
-            window.draw(player);
-
-            // Draw level text
-            window.draw(score_text);
-        },
-        StateType::Menu => {
-            /* don't draw anything for now */
-            window.clear(&Color::blue());
-        },
-        StateType::GameOver => {
-            window.clear(&Color::black());
-            window.draw(game_over_text);
-            window.draw(score_text);
-        }
-    }
-    window.display();
-}
-
-
-
 
 fn main() {
     // Create the window of the application
@@ -396,6 +365,8 @@ fn main() {
     player.set_outline_color(&Color::white());
     player.set_texture(texture_manager.get(TextureIdentifiers::Rocket), true);
     player.set_origin(&Vector2f::new(25./2., 25.));
+    let mut is_dashing = false;
+    let mut dash_clock = Clock::new();
 
 
     let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
@@ -417,6 +388,8 @@ fn main() {
     let mut view = View::new_init(&Vector2f::new(1280./2., 720./2.), &Vector2f::new(1280., 720.)).unwrap();
     window.set_view(&view);
 
+    dash_clock.restart();
+
     while window.is_open() {
         handle_events(&mut window,
                       &mut player,
@@ -425,7 +398,9 @@ fn main() {
                       UPPER_BOUND,
                       &mut number_of_plats,
                       &mut speed_bump,
-                      &mut state_stack);
+                      &mut state_stack,
+                      &mut is_dashing,
+                      &mut dash_clock);
 
         // Update
         let time = clock.restart();
@@ -439,16 +414,51 @@ fn main() {
                &mut state_stack,
                &time,
                &mut particle_manager,
-               &mut view);
+               &mut view,
+               &mut is_dashing,
+               &mut dash_clock);
 
-        render(&mut window,
-               &player,
-               &platforms,
-               &score.text,
-               &game_over_text,
-               &bg_sprites,
-               &state_stack,
-               &particle_manager,
-               &view);
+        //___________________ RENDER_BEGIN  _____________//
+        match *state_stack.top().unwrap() {
+            StateType::Playing => {
+                // Set view
+                window.set_view(&view);
+                // Clear the window
+                window.clear(&Color::black());
+
+                // Draw bg
+                for bg in &bg_sprites {
+                    window.draw(bg);
+                }
+
+                // Draw the platforms
+                for plat in &platforms {
+                    window.draw(&plat.shape);
+                }
+
+                // Draw particles
+                for p in particle_manager.particles.iter() {
+                    window.draw(&p.shape);
+                }
+
+                // Draw player
+                window.draw(&player);
+
+                // Draw level text
+                window.draw(&score.text);
+            },
+            StateType::Menu => {
+                /* don't draw anything for now */
+                window.clear(&Color::blue());
+            },
+            StateType::GameOver => {
+                window.clear(&Color::black());
+                window.draw(&game_over_text);
+                window.draw(&score.text);
+            }
+        }
+        window.display();
+
+        //____________________ RENDER_END _____________//
     }
 }
