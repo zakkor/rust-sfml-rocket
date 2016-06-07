@@ -4,7 +4,10 @@
 
 ## Gameplay
 
-![Screenshot](screenshots/gameplay.gif)
+[<b>GIF of gameplay</b>](https://github.com/zakkor/rust-sfml-rocket/blob/master/screenshots/gameplay.gif) (warning: large - 15.6MB)
+
+![Screenshot](screenshots/ss.png)
+
 
 ## How to play
 
