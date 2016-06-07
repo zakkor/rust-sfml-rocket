@@ -4,7 +4,7 @@
 
 ## Gameplay
 
-![Screenshot](screenshots/ss.png)
+![Screenshot](screenshots/gameplay.gif)
 
 ## How to play
 
