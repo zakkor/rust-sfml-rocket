@@ -4,7 +4,7 @@
 
 ## Gameplay
 
-[<b>GIF of gameplay</b>](https://github.com/zakkor/rust-sfml-rocket/blob/master/screenshots/gameplay.gif) (warning: large - 15.6MB)
+[<b>GFY of gameplay</b>](https://gfycat.com/FrighteningRelievedGuillemot)
 
 ![Screenshot](screenshots/ss.png)
 
