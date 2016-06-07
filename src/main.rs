@@ -11,6 +11,7 @@ mod resource_manager; use resource_manager::*;
 mod score; use score::Score;
 mod particle_manager; use particle_manager::*;
 mod util; use util::are_colors_equal;
+mod player; use player::*;
 
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
     *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
@@ -151,19 +152,8 @@ fn main() {
     texture_manager.load(TextureIdentifiers::Nebula, "res/nebula.png");
     texture_manager.load(TextureIdentifiers::Rocket, "res/rocket_small.png");
 
-    let mut player = RectangleShape::new().unwrap();
-    player.set_size(&Vector2f::new(25., 50.));
-    player.set_fill_color(&Color::red());
-    player.set_position(&Vector2f::new(1280. / 2., 720. - 200.));
-    player.set_outline_thickness(1.);
-    player.set_outline_color(&Color::white());
-    player.set_texture(texture_manager.get(TextureIdentifiers::Rocket), true);
-    player.set_origin(&Vector2f::new(25./2., 25.));
-    // TODO: refactor these into a Player struct
-    let mut is_dashing = false;
-    let mut dash_clock = Clock::new();
-    //---
-
+    let mut player = Player::new();
+    player.shape.set_texture(texture_manager.get(TextureIdentifiers::Rocket), true);
 
     let mut bg_sprites = vec![Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap(),
                               Sprite::new_with_texture(texture_manager.get(TextureIdentifiers::Nebula)).unwrap()];
@@ -194,12 +184,12 @@ fn main() {
                         match event {
                             event::Closed => window.close(),
                             event::MouseMoved { x, .. } => {
-                                player.set_position(&Vector2f::new(x as f32, 720. - 200.));
+                                player.shape.set_position(&Vector2f::new(x as f32, 720. - 200.));
                             }
                             event::MouseButtonReleased { button, .. } => {
                                 match button {
-                                    MouseButton::Left => cycle_colors(&mut player, CycleDirection::Left),
-                                    MouseButton::Right => cycle_colors(&mut player, CycleDirection::Right),
+                                    MouseButton::Left => cycle_colors(&mut player.shape, CycleDirection::Left),
+                                    MouseButton::Right => cycle_colors(&mut player.shape, CycleDirection::Right),
                                     _ => {}
                                 }
                             }
@@ -209,8 +199,8 @@ fn main() {
                                     println!("{:?}", state_stack);
                                 }
                                 if let Key::Space = code {
-                                    is_dashing = true;
-                                    dash_clock.restart();
+                                    player.is_dashing = true;
+                                    player.dash_clock.restart();
                                 }
                             }
                             _ => { /* do nothing */ }
@@ -256,7 +246,7 @@ fn main() {
 
                     const DASH_SPEED: f32 = 200.;
                     const PLAYER_SPEED: f32 = 200.;
-                    let total_speed = if is_dashing { PLAYER_SPEED + DASH_SPEED } else { PLAYER_SPEED };
+                    let total_speed = if player.is_dashing { PLAYER_SPEED + DASH_SPEED } else { PLAYER_SPEED };
 
                     // move background
                     for bg in &mut bg_sprites {
@@ -272,13 +262,13 @@ fn main() {
                     let mut switch_level = false;
 
                     // dash expired
-                    if dash_clock.get_elapsed_time().as_seconds() >= 0.5 {
-                        is_dashing = false;
+                    if player.dash_clock.get_elapsed_time().as_seconds() >= 0.5 {
+                        player.is_dashing = false;
                     }
 
                     for (i, plat) in platforms.iter_mut().enumerate() {
-                        if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                            !are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
+                        if player.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                            !are_colors_equal(&player.shape.get_fill_color(), &plat.shape.get_fill_color()) {
                                 if i == (number_of_plats) as usize {
                                     switch_level = true;
                                 } else {
@@ -300,17 +290,17 @@ fn main() {
                                 }
 
                             }
-                        else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                            are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
+                        else if player.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                            are_colors_equal(&player.shape.get_fill_color(), &plat.shape.get_fill_color()) {
                                 // player is successfully passing through a platform
                                 score.number += (1. * (speed_bump + 1.) * (dt + 1.)) as u32;
                                 score.text.set_string(&score.number.to_string());
-                                particle_manager.set_position(&player.get_position());
-                                particle_manager.spawn_random_particle(&player.get_fill_color());
+                                particle_manager.set_position(&player.shape.get_position());
+                                particle_manager.spawn_random_particle(&player.shape.get_fill_color());
 
                                 // screen shake
                                 // make it shake harder when player is dashing
-                                let shake_bound = if is_dashing { 6 } else { 2 };
+                                let shake_bound = if player.is_dashing { 6 } else { 2 };
                                 let x_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
                                 let y_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
                                 view.move2f(x_offset, y_offset);
@@ -319,13 +309,13 @@ fn main() {
                         // move all platforms downwards
                         plat.shape.move2f(0., (total_speed + speed_bump) * dt);
 
-                        let thrust_particle_spawn_time = if is_dashing { 0.07 } else { 0.1 };
+                        let thrust_particle_spawn_time = if player.is_dashing { 0.07 } else { 0.1 };
 
                         if particle_manager.clock.get_elapsed_time().as_seconds() >= thrust_particle_spawn_time {
-                            particle_manager.set_position(&player.get_position());
-                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.), &is_dashing);
-                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.), &is_dashing);
-                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.), &is_dashing);
+                            particle_manager.set_position(&player.shape.get_position());
+                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.), &player.is_dashing);
+                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.), &player.is_dashing);
+                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.), &player.is_dashing);
                             particle_manager.clock.restart();
                         }
 
@@ -380,7 +370,7 @@ fn main() {
                     }
 
                     // Draw player
-                    window.draw(&player);
+                    window.draw(&player.shape);
 
                     // Draw level text
                     window.draw(&score.text);
