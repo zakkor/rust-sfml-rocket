@@ -50,7 +50,8 @@ pub enum TextureIdentifiers {
 }
 #[derive(PartialEq, Eq, Hash)]
 pub enum FontIdentifiers {
-    Arial
+    Arial,
+    Joystix
 }
 
 pub type TextureManager = ResourceManager<TextureIdentifiers, Texture>;

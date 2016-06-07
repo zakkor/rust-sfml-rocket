@@ -17,6 +17,7 @@ impl<'a> Button<'a> {
         let mut text = Text::new().unwrap();
         text.set_font(font);
         text.set_color(&Color::white());
+        text.set_character_size(50);
 
 
         match button_type {

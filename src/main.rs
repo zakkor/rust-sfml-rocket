@@ -131,6 +131,7 @@ fn main() {
 
     let mut font_manager = FontManager::new();
     font_manager.load(FontIdentifiers::Arial, "res/arial.ttf");
+    font_manager.load(FontIdentifiers::Joystix, "res/joystix-mono.ttf");
 
     let mut score = Score::new();
     score.text.set_font(font_manager.get(FontIdentifiers::Arial));
@@ -178,8 +179,8 @@ fn main() {
 
     // menu
     let mut menu = Menu {
-        buttons: vec![Button::new(font_manager.get(FontIdentifiers::Arial), ButtonType::Resume, &Vector2f::new(1280./2., 720./2.)),
-                      Button::new(font_manager.get(FontIdentifiers::Arial), ButtonType::Quit, &Vector2f::new(1280./2., 720./2.+ 80.))]
+        buttons: vec![Button::new(font_manager.get(FontIdentifiers::Joystix), ButtonType::Resume, &Vector2f::new(150., 180.)),
+                      Button::new(font_manager.get(FontIdentifiers::Joystix), ButtonType::Quit, &Vector2f::new(150., 180.+ 80.))]
     };
 
     while window.is_open() {
@@ -229,9 +230,9 @@ fn main() {
                                     let x = x as f32;
                                     let y = y as f32;
                                     if x > button.text.get_position().x
-                                        && x < button.text.get_position().x + button.text.get_global_bounds().width
+                                        && x < (button.text.get_position().x + button.text.get_local_bounds().width)
                                         && y > button.text.get_position().y
-                                        && y < button.text.get_position().y + button.text.get_global_bounds().height {
+                                        && y < (button.text.get_position().y + button.text.get_local_bounds().height * 2.) { // <- *2. because Text bounding box is broken - SFML bug?
                                             button.text.set_color(&Color::green());
                                         }
                                     else {
