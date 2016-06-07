@@ -12,6 +12,7 @@ mod score; use score::Score;
 mod particle_manager; use particle_manager::*;
 mod util; use util::are_colors_equal;
 mod player; use player::*;
+mod menu; use menu::*;
 
 fn generate_platforms(platforms: &mut Vec<Platform>, upper_bound: i32) -> i32 {
     *platforms = vec![Platform::new(RectangleShape::new().unwrap(), PlatformType::Static, 0.)];
@@ -175,6 +176,12 @@ fn main() {
     let mut view = View::new_init(&Vector2f::new(1280./2., 720./2.), &Vector2f::new(1280., 720.)).unwrap();
     window.set_view(&view);
 
+    // menu
+    let mut menu = Menu {
+        buttons: vec![Button::new(font_manager.get(FontIdentifiers::Arial), ButtonType::Resume, &Vector2f::new(1280./2., 720./2.)),
+                      Button::new(font_manager.get(FontIdentifiers::Arial), ButtonType::Quit, &Vector2f::new(1280./2., 720./2.+ 80.))]
+    };
+
     while window.is_open() {
         {
             //___________________ EVENTS_BEGIN ______________//
@@ -207,11 +214,51 @@ fn main() {
                         }
                     },
                     StateType::Menu => {
-                        if let event::KeyReleased { code, .. } = event {
-                            if let Key::Escape = code {
-                                state_stack.pop();
-                                println!("{:?}", state_stack);
-                            }
+                        match event {
+                            event::KeyReleased { code, .. } => {
+                                match code {
+                                    Key::Escape => {
+                                        state_stack.pop();
+                                        println!("{:?}", state_stack);
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            event::MouseMoved { x, y, .. } => {
+                                for button in &mut menu.buttons {
+                                    let x = x as f32;
+                                    let y = y as f32;
+                                    if x > button.text.get_position().x
+                                        && x < button.text.get_position().x + button.text.get_global_bounds().width
+                                        && y > button.text.get_position().y
+                                        && y < button.text.get_position().y + button.text.get_global_bounds().height {
+                                            button.text.set_color(&Color::green());
+                                        }
+                                    else {
+                                        button.text.set_color(&Color::white());
+                                    }
+                                }
+                            },
+                            event::MouseButtonReleased { button, .. } => {
+                                match button {
+                                    MouseButton::Left => {
+                                        for button in &menu.buttons {
+                                            if are_colors_equal(&button.text.get_color(), &Color::green()) {
+                                                match button.button_type {
+                                                    ButtonType::Quit => {
+                                                        window.close();
+                                                    },
+                                                    ButtonType::Resume => {
+                                                        state_stack.pop();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => {}
                         }
                     },
                     StateType::GameOver => {
@@ -378,19 +425,25 @@ fn main() {
                 }
             },
             StateType::Menu => {
+                // update
                 {
                     /* don't update anything for now */
                 }
+                // render
                 {
-                    /* don't draw anything for now */
+                    window.clear(&Color::black());
+
+                    for button in &menu.buttons {
+                        window.draw(&button.text);
+                    }
                 }
-                window.clear(&Color::blue());
             },
             StateType::GameOver => {
+                // update
                 {
                     /* don't update anything for now */
                 }
-
+                // render
                 {
                     window.clear(&Color::black());
                     window.draw(&game_over_text);
