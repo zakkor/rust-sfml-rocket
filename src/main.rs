@@ -186,213 +186,226 @@ fn main() {
     window.set_view(&view);
 
     while window.is_open() {
-        //___________________ EVENTS_BEGIN ______________//
-        for event in window.events() {
-            match *state_stack.top().unwrap() {
-                StateType::Playing => {
-                    match event {
-                        event::Closed => window.close(),
-                        event::MouseMoved { x, .. } => {
-                            player.set_position(&Vector2f::new(x as f32, 720. - 200.));
-                        }
-                        event::MouseButtonReleased { button, .. } => {
-                            match button {
-                                MouseButton::Left => cycle_colors(&mut player, CycleDirection::Left),
-                                MouseButton::Right => cycle_colors(&mut player, CycleDirection::Right),
-                                _ => {}
+        {
+            //___________________ EVENTS_BEGIN ______________//
+            for event in window.events() {
+                match *state_stack.top().unwrap() {
+                    StateType::Playing => {
+                        match event {
+                            event::Closed => window.close(),
+                            event::MouseMoved { x, .. } => {
+                                player.set_position(&Vector2f::new(x as f32, 720. - 200.));
                             }
+                            event::MouseButtonReleased { button, .. } => {
+                                match button {
+                                    MouseButton::Left => cycle_colors(&mut player, CycleDirection::Left),
+                                    MouseButton::Right => cycle_colors(&mut player, CycleDirection::Right),
+                                    _ => {}
+                                }
+                            }
+                            event::KeyReleased { code, .. } => {
+                                if let Key::Escape = code {
+                                    state_stack.push(StateType::Menu);
+                                    println!("{:?}", state_stack);
+                                }
+                                if let Key::Space = code {
+                                    is_dashing = true;
+                                    dash_clock.restart();
+                                }
+                            }
+                            _ => { /* do nothing */ }
                         }
-                        event::KeyReleased { code, .. } => {
+                    },
+                    StateType::Menu => {
+                        if let event::KeyReleased { code, .. } = event {
                             if let Key::Escape = code {
-                                state_stack.push(StateType::Menu);
+                                state_stack.pop();
                                 println!("{:?}", state_stack);
                             }
-                            if let Key::Space = code {
-                                is_dashing = true;
-                                dash_clock.restart();
-                            }
                         }
-                        _ => { /* do nothing */ }
-                    }
-                },
-                StateType::Menu => {
-                    if let event::KeyReleased { code, .. } = event {
-                        if let Key::Escape = code {
-                            state_stack.pop();
-                            println!("{:?}", state_stack);
+                    },
+                    StateType::GameOver => {
+                        match event {
+                            event::Closed => { window.close(); },
+                            event::KeyReleased { code, .. } => {
+                                match code {
+                                    Key::R => {
+                                        //reset the game
+                                        state_stack.pop();
+                                        score.reset();
+                                        number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
+                                        speed_bump = 0.5;
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => {}
                         }
-                    }
-                },
-                StateType::GameOver => {
-                    match event {
-                        event::Closed => { window.close(); },
-                        event::KeyReleased { code, .. } => {
-                            match code {
-                                Key::R => {
-                                    //reset the game
-                                    state_stack.pop();
-                                    score.reset();
-                                    number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
-                                    speed_bump = 0.5;
-                                },
-                                _ => {}
-                            }
-                        },
-                        _ => {}
                     }
                 }
             }
+            //___________________ EVENTS_END ______________//
         }
-        //___________________ EVENTS_END ______________//
-
 
         let time = clock.restart();
         match *state_stack.top().unwrap() {
             StateType::Playing => {
-                //___________________ UPDATE_BEGIN ______________//
-                let dt = time.as_seconds();
+                {
+                    //___________________ UPDATE_BEGIN ______________//
+                    let dt = time.as_seconds();
 
-                const DASH_SPEED: f32 = 200.;
-                const PLAYER_SPEED: f32 = 200.;
-                let total_speed = if is_dashing { PLAYER_SPEED + DASH_SPEED } else { PLAYER_SPEED };
+                    const DASH_SPEED: f32 = 200.;
+                    const PLAYER_SPEED: f32 = 200.;
+                    let total_speed = if is_dashing { PLAYER_SPEED + DASH_SPEED } else { PLAYER_SPEED };
 
-                // move background
-                for bg in &mut bg_sprites {
-                    bg.move_(&Vector2f::new(0., (total_speed / 4. + speed_bump) * dt ));
-                    if bg.get_position().y >= 720. {
-                        bg.move_(&Vector2f::new(0., -720. * 2.))
-                    }
-                }
-
-                // reset view
-                view.set_center(&Vector2f::new(1280./2., 720./2.));
-
-                let mut switch_level = false;
-
-                // dash expired
-                if dash_clock.get_elapsed_time().as_seconds() >= 0.5 {
-                    is_dashing = false;
-                }
-
-                for (i, plat) in platforms.iter_mut().enumerate() {
-                    if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                        !are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
-                            if i == (number_of_plats) as usize {
-                                switch_level = true;
-                            } else {
-                                // game over
-                                state_stack.push(StateType::GameOver);
-                                let score_rect = score.text.get_local_bounds();
-                                score.text.set_origin(&Vector2f::new(score_rect.left + score_rect.width / 2.,
-                                                      score_rect.top + score_rect.height / 2.));
-                                score.text.set_character_size(60);
-                                score.text.set_position(&Vector2f::new(1280. / 2., 350.));
-                                score.text.set_color(
-                                    &match score.number {
-                                        0...500 => Color::red(),
-                                        501...1000 => Color::yellow(),
-                                        _ => Color::green()
-                                    } );
-                                // reset particles
-                                particle_manager.reset();
-                            }
-
+                    // move background
+                    for bg in &mut bg_sprites {
+                        bg.move_(&Vector2f::new(0., (total_speed / 4. + speed_bump) * dt ));
+                        if bg.get_position().y >= 720. {
+                            bg.move_(&Vector2f::new(0., -720. * 2.))
                         }
-                    else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                        are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
-                            // player is successfully passing through a platform
-                            score.number += (1. * (speed_bump + 1.) * (dt + 1.)) as u32;
-                            score.text.set_string(&score.number.to_string());
-                            particle_manager.set_position(&player.get_position());
-                            particle_manager.spawn_random_particle(&player.get_fill_color());
-
-                            // screen shake
-                            // make it shake harder when player is dashing
-                            let shake_bound = if is_dashing { 6 } else { 2 };
-                            let x_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
-                            let y_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
-                            view.move2f(x_offset, y_offset);
-                        }
-
-                    // move all platforms downwards
-                    plat.shape.move2f(0., (total_speed + speed_bump) * dt);
-
-                    let thrust_particle_spawn_time = if is_dashing { 0.07 } else { 0.1 };
-
-                    if particle_manager.clock.get_elapsed_time().as_seconds() >= thrust_particle_spawn_time {
-                        particle_manager.set_position(&player.get_position());
-                        particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.), &is_dashing);
-                        particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.), &is_dashing);
-                        particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.), &is_dashing);
-                        particle_manager.clock.restart();
                     }
 
-                    // check for particle collision with other platforms and mark them for explosion
-                    for part in &mut particle_manager.particles {
-                        if part.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
-                            !are_colors_equal(&part.shape.get_fill_color(), &plat.shape.get_fill_color()) {
-                                // make sure we don't explode the thruster particles
-                                // TODO: perhaps use an enum instead of checking for the color
-                                if !are_colors_equal(&part.shape.get_fill_color(), &Color::yellow()) {
-                                    part.mark_for_explosion = true;
+                    // reset view
+                    view.set_center(&Vector2f::new(1280./2., 720./2.));
+
+                    let mut switch_level = false;
+
+                    // dash expired
+                    if dash_clock.get_elapsed_time().as_seconds() >= 0.5 {
+                        is_dashing = false;
+                    }
+
+                    for (i, plat) in platforms.iter_mut().enumerate() {
+                        if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                            !are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
+                                if i == (number_of_plats) as usize {
+                                    switch_level = true;
+                                } else {
+                                    // game over
+                                    state_stack.push(StateType::GameOver);
+                                    let score_rect = score.text.get_local_bounds();
+                                    score.text.set_origin(&Vector2f::new(score_rect.left + score_rect.width / 2.,
+                                                                         score_rect.top + score_rect.height / 2.));
+                                    score.text.set_character_size(60);
+                                    score.text.set_position(&Vector2f::new(1280. / 2., 350.));
+                                    score.text.set_color(
+                                        &match score.number {
+                                            0...500 => Color::red(),
+                                            501...1000 => Color::yellow(),
+                                            _ => Color::green()
+                                        } );
+                                    // reset particles
+                                    particle_manager.reset();
                                 }
+
                             }
+                        else if player.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                            are_colors_equal(&player.get_fill_color(), &plat.shape.get_fill_color()) {
+                                // player is successfully passing through a platform
+                                score.number += (1. * (speed_bump + 1.) * (dt + 1.)) as u32;
+                                score.text.set_string(&score.number.to_string());
+                                particle_manager.set_position(&player.get_position());
+                                particle_manager.spawn_random_particle(&player.get_fill_color());
+
+                                // screen shake
+                                // make it shake harder when player is dashing
+                                let shake_bound = if is_dashing { 6 } else { 2 };
+                                let x_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
+                                let y_offset = rand::thread_rng().gen_range(-shake_bound, shake_bound) as f32;
+                                view.move2f(x_offset, y_offset);
+                            }
+
+                        // move all platforms downwards
+                        plat.shape.move2f(0., (total_speed + speed_bump) * dt);
+
+                        let thrust_particle_spawn_time = if is_dashing { 0.07 } else { 0.1 };
+
+                        if particle_manager.clock.get_elapsed_time().as_seconds() >= thrust_particle_spawn_time {
+                            particle_manager.set_position(&player.get_position());
+                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(0., 400.), &is_dashing);
+                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(-50., 400.), &is_dashing);
+                            particle_manager.spawn_directed_particle(&Color::yellow(), &Vector2f::new(50., 400.), &is_dashing);
+                            particle_manager.clock.restart();
+                        }
+
+                        // check for particle collision with other platforms and mark them for explosion
+                        for part in &mut particle_manager.particles {
+                            if part.shape.get_global_bounds().intersects(&plat.shape.get_global_bounds()) != None &&
+                                !are_colors_equal(&part.shape.get_fill_color(), &plat.shape.get_fill_color()) {
+                                    // make sure we don't explode the thruster particles
+                                    // TODO: perhaps use an enum instead of checking for the color
+                                    if !are_colors_equal(&part.shape.get_fill_color(), &Color::yellow()) {
+                                        part.mark_for_explosion = true;
+                                    }
+                                }
+                        }
                     }
+
+                    let speed_bump_dt = speed_bump * dt;
+                    for plat in platforms.iter_mut() {
+                        plat.move_platform(&speed_bump_dt);
+                    }
+
+                    // update particles
+                    particle_manager.update(dt, (total_speed + speed_bump) * dt);
+
+                    if switch_level {
+                        speed_bump += 0.5;
+                        number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
+                    }
+                    //___________________ UPDATE_END ________________//
                 }
 
-                let speed_bump_dt = speed_bump * dt;
-                for plat in platforms.iter_mut() {
-                    plat.move_platform(&speed_bump_dt);
+                {
+                    //___________________ RENDER_BEGIN  _____________//
+                    // Set view
+                    window.set_view(&view);
+                    // Clear the window
+                    window.clear(&Color::black());
+
+                    // Draw bg
+                    for bg in &bg_sprites {
+                        window.draw(bg);
+                    }
+
+                    // Draw the platforms
+                    for plat in &platforms {
+                        window.draw(&plat.shape);
+                    }
+
+                    // Draw particles
+                    for p in particle_manager.particles.iter() {
+                        window.draw(&p.shape);
+                    }
+
+                    // Draw player
+                    window.draw(&player);
+
+                    // Draw level text
+                    window.draw(&score.text);
+                    //____________________ RENDER_END _____________//
                 }
-
-                // update particles
-                particle_manager.update(dt, (total_speed + speed_bump) * dt);
-
-                if switch_level {
-                    speed_bump += 0.5;
-                    number_of_plats = generate_platforms(&mut platforms, UPPER_BOUND);
-                }
-                //___________________ UPDATE_END ________________//
-
-                //___________________ RENDER_BEGIN  _____________//
-                // Set view
-                window.set_view(&view);
-                // Clear the window
-                window.clear(&Color::black());
-
-                // Draw bg
-                for bg in &bg_sprites {
-                    window.draw(bg);
-                }
-
-                // Draw the platforms
-                for plat in &platforms {
-                    window.draw(&plat.shape);
-                }
-
-                // Draw particles
-                for p in particle_manager.particles.iter() {
-                    window.draw(&p.shape);
-                }
-
-                // Draw player
-                window.draw(&player);
-
-                // Draw level text
-                window.draw(&score.text);
-                //____________________ RENDER_END _____________//
             },
             StateType::Menu => {
-                /* don't update anything for now */
-                /* don't draw anything for now */
+                {
+                    /* don't update anything for now */
+                }
+                {
+                    /* don't draw anything for now */
+                }
                 window.clear(&Color::blue());
             },
             StateType::GameOver => {
-                /* don't update anything for now */
+                {
+                    /* don't update anything for now */
+                }
 
-                window.clear(&Color::black());
-                window.draw(&game_over_text);
-                window.draw(&score.text);
+                {
+                    window.clear(&Color::black());
+                    window.draw(&game_over_text);
+                    window.draw(&score.text);
+                }
             }
         }
         window.display();
