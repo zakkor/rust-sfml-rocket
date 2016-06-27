@@ -24,6 +24,8 @@ Move mouse left/right  | Move the player left/right on the horizontal axis
 
 ## Building
 
+## Linux
+
 You will need to install the [SFML 2.3.x](http://www.sfml-dev.org/download/sfml/2.3.2/) and [CSFML 2.3](http://www.sfml-dev.org/download/csfml/) libraries to be able to build.
 
 On Ubuntu 14.04 at least, using the precompiled versions of the libraries from www.sfml-dev.org will cause a runtime error, so you will need to build them yourself.
@@ -59,6 +61,24 @@ Go back to the root dir: `cd ..`
 Run the game: `cargo run`
 
 After cargo is done downloading and compiling dependencies, it will compile and run the game.
+
+## Mac OS X
+
+#### 1. Download dependencies
+I recommend using [Homebrew](http://brew.sh/).
+
+Get SFML and CSFML:
+
+`brew install sfml csfml`
+
+#### 2. Clone the repository
+`git clone https://github.com/zakkor/rust-sfml-rocket`
+
+`cd rust-sfml-rocket`
+
+`cargo run`
+
+That's it!
 
 ## License
 
