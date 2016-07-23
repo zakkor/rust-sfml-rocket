@@ -22,6 +22,9 @@ Button                 | Action
 Move mouse left/right  | Move the player left/right on the horizontal axis
 <kbd>Esc</kbd>         | Pause/unpause the game
 
+## Download binaries
+Grab the latest stable release from https://github.com/zakkor/rust-sfml-rocket/releases
+
 ## Building
 
 ## Linux
