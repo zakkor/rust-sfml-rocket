@@ -183,6 +183,16 @@ fn main() {
                       Button::new(font_manager.get(FontIdentifiers::Joystix), ButtonType::Quit, &Vector2f::new(150., 180.+ 80.))]
     };
 
+    
+    
+    // shader
+    let shader = Shader::new_from_file(Some("shaders/shader.vert"), Some("shaders/shader.frag")).unwrap();
+
+    // renderstates
+    let mut states = RenderStates::default();
+    // set shader
+    states.shader = Some(&shader);
+
     while window.is_open() {
         {
             //___________________ EVENTS_BEGIN ______________//
@@ -418,7 +428,7 @@ fn main() {
                     }
 
                     // Draw player
-                    window.draw(&player.shape);
+                    window.draw_with_renderstates(&player.shape, &mut states);
 
                     // Draw level text
                     window.draw(&score.text);
