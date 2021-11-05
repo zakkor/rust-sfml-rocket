@@ -2,7 +2,8 @@
 name = "rust-sfml-rocket"
 version = "0.1.0"
 authors = ["zakkor@github.com <edward.partenie@gmail.com>"]
+edition = "2021"
 
 [dependencies]
-sfml = "*"
-rand = "*"
+sfml = "0.16.0"
+rand = "0.8.4"

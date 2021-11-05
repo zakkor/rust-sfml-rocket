@@ -1,44 +1,47 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 extern crate sfml;
-use sfml::graphics::{Texture, Font};
+use sfml::{
+    graphics::{Font, Texture},
+    SfBox,
+};
 
 pub trait Resource: Sized {
     fn new_from_file(filename: &str) -> Option<Self>;
 }
 
-impl Resource for Texture {
+impl Resource for SfBox<Texture> {
     fn new_from_file(filename: &str) -> Option<Self> {
-        Texture::new_from_file(filename)
+        Texture::from_file(filename)
     }
 }
 
-impl Resource for Font {
+impl Resource for SfBox<Font> {
     fn new_from_file(filename: &str) -> Option<Self> {
-        Font::new_from_file(filename)
+        Font::from_file(filename)
     }
 }
 
 pub struct ResourceManager<I, R> {
-    resource_map: HashMap<I, Box<R>>
+    resource_map: HashMap<I, Box<R>>,
 }
 
 impl<I: Eq + Hash, R: Resource> ResourceManager<I, R> {
     pub fn new() -> Self {
         ResourceManager {
-            resource_map: HashMap::<I, Box<R>>::new()
+            resource_map: HashMap::<I, Box<R>>::new(),
         }
     }
 
-    pub fn load(&mut self, identifier: I, filename: & str) {
+    pub fn load(&mut self, identifier: I, filename: &str) {
         let resource = R::new_from_file(filename).unwrap();
         self.resource_map.insert(identifier, Box::new(resource));
     }
 
-    pub fn get(&self, identifier: I) -> &Box<R> {
+    pub fn get(&self, identifier: I) -> &R {
         match self.resource_map.get(&identifier) {
             Some(resource) => resource,
-            None => panic!("Tried to access nonexistant index in resource map")
+            None => panic!("Tried to access nonexistant index in resource map"),
         }
     }
 }
@@ -46,13 +49,13 @@ impl<I: Eq + Hash, R: Resource> ResourceManager<I, R> {
 #[derive(PartialEq, Eq, Hash)]
 pub enum TextureIdentifiers {
     Nebula,
-    Rocket
+    Rocket,
 }
 #[derive(PartialEq, Eq, Hash)]
 pub enum FontIdentifiers {
     Arial,
-    Joystix
+    Joystix,
 }
 
-pub type TextureManager = ResourceManager<TextureIdentifiers, Texture>;
-pub type FontManager = ResourceManager<FontIdentifiers, Font>;
+pub type TextureManager = ResourceManager<TextureIdentifiers, SfBox<Texture>>;
+pub type FontManager = ResourceManager<FontIdentifiers, SfBox<Font>>;
